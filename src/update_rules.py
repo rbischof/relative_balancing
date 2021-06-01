@@ -1,8 +1,8 @@
 import tensorflow as tf
 
 @tf.function
-def manual(model, optimizer, problem, x, y, u, args:list=None):
-    f_loss, b_losses, val_loss = problem.calculate_loss(x, y, u, training=True)
+def manual(model, optimizer, pde, x, y, u, args:list=None):
+    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, training=True)
 
     if args == None:
         args = [1.]*(len(b_losses)+1)
@@ -17,8 +17,8 @@ def manual(model, optimizer, problem, x, y, u, args:list=None):
 
 
 @tf.function
-def lrannealing(model, optimizer, problem, x, y, u, args:list):
-    f_loss, b_losses, val_loss = problem.calculate_loss(x, y, u, training=True)
+def lrannealing(model, optimizer, pde, x, y, u, args:list):
+    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, training=True)
 
     alpha = args['alpha'][0]
 
@@ -45,8 +45,8 @@ def lrannealing(model, optimizer, problem, x, y, u, args:list):
 
 
 @tf.function
-def relative(model, optimizer, problem, x, y, u, args):
-    f_loss, b_losses, val_loss = problem.calculate_loss(x, y, u, training=True)
+def relative(model, optimizer, pde, x, y, u, args):
+    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, training=True)
 
     alpha = args['alpha'][0]
     T = args['T']

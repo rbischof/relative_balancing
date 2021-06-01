@@ -160,4 +160,4 @@ parser.add_argument('--resample', action='store_true', help='resample datapoints
 parser.add_argument('--verbose', action='store_true', help='print progress to terminal')
 
 args = parser.parse_args()
-train(args.layers, args.nodes, args.network, args.training_type, args.sampling)
+train(args)

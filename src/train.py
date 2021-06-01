@@ -137,28 +137,27 @@ def train(meta_args):
     
         
 
-if __name__ == "__train__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--path', default='experiments', type=str, help='path where to store the results')
+parser = argparse.ArgumentParser()
+parser.add_argument('--path', default='experiments/', type=str, help='path where to store the results')
 
-    parser.add_argument('--layers', default=1, type=int, help='number of layers')
-    parser.add_argument('--nodes', default=32, type=int, help='number of nodes')
-    parser.add_argument('--network', default='fc', type=str, help='type of network')
+parser.add_argument('--layers', default=1, type=int, help='number of layers')
+parser.add_argument('--nodes', default=32, type=int, help='number of nodes')
+parser.add_argument('--network', default='fc', type=str, help='type of network')
 
-    parser.add_argument('--optimizer', default='adam', type=str, help='type of optimizer')
-    parser.add_argument('--lr', default=5e-4, type=float, help='learning rate')
-    parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
-    parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
+parser.add_argument('--optimizer', default='adam', type=str, help='type of optimizer')
+parser.add_argument('--lr', default=5e-4, type=float, help='learning rate')
+parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
+parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
-    parser.add_argument('--problem', default='helmholtz', type=str, help='type of pde to fit')
-    parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
-    parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
-    parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')
-    parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
+parser.add_argument('--problem', default='helmholtz', type=str, help='type of pde to fit')
+parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
+parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
+parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')
+parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
 
-    parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')
-    parser.add_argument('--resample', action='store_true', help='resample datapoints or keep them fixed')
-    parser.add_argument('--verbose', action='store_true', help='print progress to terminal')
+parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')
+parser.add_argument('--resample', action='store_true', help='resample datapoints or keep them fixed')
+parser.add_argument('--verbose', action='store_true', help='print progress to terminal')
 
-    args = parser.parse_args()
-    train(args.layers, args.nodes, args.network, args.training_type, args.sampling)
+args = parser.parse_args()
+train(args.layers, args.nodes, args.network, args.training_type, args.sampling)

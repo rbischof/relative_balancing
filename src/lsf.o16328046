@@ -1,0 +1,36 @@
+Sender: LSF System <lsfadmin@lo-s4-019>
+Subject: Job 16328046: <python train.py --verbose --path test> in cluster <leonhard> Done
+
+Job <python train.py --verbose --path test> was submitted from host <lo-login-02> by user <rabischof> in cluster <leonhard> at Tue Jun  1 10:40:42 2021
+Job was executed on host(s) <lo-s4-019>, in queue <gpu.4h>, as user <rabischof> in cluster <leonhard> at Tue Jun  1 10:40:45 2021
+</cluster/home/rabischof> was used as the home directory.
+</cluster/home/rabischof/relative/relative_balancing/src> was used as the working directory.
+Started at Tue Jun  1 10:40:45 2021
+Terminated at Tue Jun  1 10:40:52 2021
+Results reported at Tue Jun  1 10:40:52 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python train.py --verbose --path test
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   3.30 sec.
+    Max Memory :                                 139 MB
+    Average Memory :                             110.00 MB
+    Total Requested Memory :                     1000.00 MB
+    Delta Memory :                               861.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   7 sec.
+    Turnaround time :                            10 sec.
+
+The output (if any) follows:
+
+2021-06-01 10:40:48.397077: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1

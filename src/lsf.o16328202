@@ -1,0 +1,75 @@
+Sender: LSF System <lsfadmin@lo-s4-019>
+Subject: Job 16328202: <python train.py --verbose --path test> in cluster <leonhard> Exited
+
+Job <python train.py --verbose --path test> was submitted from host <lo-login-02> by user <rabischof> in cluster <leonhard> at Tue Jun  1 10:58:09 2021
+Job was executed on host(s) <lo-s4-019>, in queue <gpu.4h>, as user <rabischof> in cluster <leonhard> at Tue Jun  1 10:58:14 2021
+</cluster/home/rabischof> was used as the home directory.
+</cluster/home/rabischof/relative/relative_balancing/src> was used as the working directory.
+Started at Tue Jun  1 10:58:14 2021
+Terminated at Tue Jun  1 10:58:22 2021
+Results reported at Tue Jun  1 10:58:22 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python train.py --verbose --path test
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   4.41 sec.
+    Max Memory :                                 670 MB
+    Average Memory :                             114.00 MB
+    Total Requested Memory :                     1000.00 MB
+    Delta Memory :                               330.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   32 sec.
+    Turnaround time :                            13 sec.
+
+The output (if any) follows:
+
+2021-06-01 10:58:17.290037: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-01 10:58:20.275921: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcuda.so.1
+2021-06-01 10:58:20.327556: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1716] Found device 0 with properties: 
+pciBusID: 0000:0d:00.0 name: GeForce GTX 1080 computeCapability: 6.1
+coreClock: 1.7335GHz coreCount: 20 deviceMemorySize: 7.93GiB deviceMemoryBandwidth: 298.32GiB/s
+2021-06-01 10:58:20.327606: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-01 10:58:20.331366: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcublas.so.10
+2021-06-01 10:58:20.334136: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcufft.so.10
+2021-06-01 10:58:20.334959: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcurand.so.10
+2021-06-01 10:58:20.337897: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusolver.so.10
+2021-06-01 10:58:20.339606: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusparse.so.10
+2021-06-01 10:58:20.344831: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudnn.so.7
+2021-06-01 10:58:20.350689: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1858] Adding visible gpu devices: 0
+2021-06-01 10:58:20.359396: I tensorflow/core/platform/profile_utils/cpu_utils.cc:104] CPU Frequency: 2199850000 Hz
+2021-06-01 10:58:20.359559: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x49d7ff0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2021-06-01 10:58:20.359582: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2021-06-01 10:58:20.563675: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x4a5a0f0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2021-06-01 10:58:20.563734: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): GeForce GTX 1080, Compute Capability 6.1
+2021-06-01 10:58:20.566286: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1716] Found device 0 with properties: 
+pciBusID: 0000:0d:00.0 name: GeForce GTX 1080 computeCapability: 6.1
+coreClock: 1.7335GHz coreCount: 20 deviceMemorySize: 7.93GiB deviceMemoryBandwidth: 298.32GiB/s
+2021-06-01 10:58:20.566324: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-01 10:58:20.566346: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcublas.so.10
+2021-06-01 10:58:20.566360: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcufft.so.10
+2021-06-01 10:58:20.566373: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcurand.so.10
+2021-06-01 10:58:20.566385: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusolver.so.10
+2021-06-01 10:58:20.566397: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusparse.so.10
+2021-06-01 10:58:20.566410: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudnn.so.7
+2021-06-01 10:58:20.573173: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1858] Adding visible gpu devices: 0
+2021-06-01 10:58:20.573209: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-01 10:58:21.059205: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1257] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-06-01 10:58:21.059262: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1263]      0 
+2021-06-01 10:58:21.059274: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1276] 0:   N 
+2021-06-01 10:58:21.064367: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1402] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7445 MB memory) -> physical GPU (device: 0, name: GeForce GTX 1080, pci bus id: 0000:0d:00.0, compute capability: 6.1)
+Traceback (most recent call last):
+  File "train.py", line 163, in <module>
+    train(args)
+  File "train.py", line 31, in train
+    if meta_args.pde == 'helmholtz':
+AttributeError: 'Namespace' object has no attribute 'pde'

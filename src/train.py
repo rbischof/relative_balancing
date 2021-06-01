@@ -27,17 +27,17 @@ def train(meta_args):
     else:
         raise ValueError('Optimizer type not understood:' + meta_args.optimizer)
 
-    # initialize problem
+    # initialize pde
     if meta_args.pde == 'helmholtz':
-        problem = Helmholtz()
+        pde = Helmholtz()
     elif meta_args.pde == 'burgers':
-        problem = Burgers()
+        pde = Burgers()
     elif meta_args.pde == 'kirchhoff':
-        problem = Kirchhoff()
+        pde = Kirchhoff()
     else:
         raise ValueError('PDE type not understood:' + meta_args.pde)
 
-    num_b_losses = 1 if meta_args.aggregate_boundaries else problem.num_b_losses
+    num_b_losses = 1 if meta_args.aggregate_boundaries else pde.num_b_losses
 
     # initialize update rule
     if meta_args.update_rule == 'manual':
@@ -73,13 +73,13 @@ def train(meta_args):
         print("cloning model failed, saving best model separately is not possible")
 
     start = time()
-    x, y, u = problem.generate_data()
+    x, y, u = pde.generate_data()
     print('start training of', meta_args.pde, 'in', experiment_path)
     for epoch in range(meta_args.epochs):
             
         f_loss, b_losses, val_loss, args = update_rule(model, 
                             optimizer, 
-                            problem, 
+                            pde, 
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
                             tf.constant(u, dtype=tf.float32),
@@ -87,7 +87,7 @@ def train(meta_args):
         loss = f_loss + tf.reduce_sum(b_losses)
             
         if meta_args.resample:
-            x, y, u = problem.generate_data()
+            x, y, u = pde.generate_data()
                 
         if epoch % 1000 == 0:
             
@@ -149,7 +149,7 @@ parser.add_argument('--lr', default=5e-4, type=float, help='learning rate')
 parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
-parser.add_argument('--problem', default='helmholtz', type=str, help='type of pde to fit')
+parser.add_argument('--pde', default='helmholtz', type=str, help='type of pde to fit')
 parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
 parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
 parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')

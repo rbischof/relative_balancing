@@ -85,7 +85,8 @@ def train(meta_args):
                             tf.constant(y, dtype=tf.float32), 
                             tf.constant(u, dtype=tf.float32),
                             args,
-                            alpha[0])
+                            alpha[0],
+                            meta_args.aggregate_boundaries)
         loss = f_loss + tf.reduce_sum(b_losses)
             
         if meta_args.resample:
@@ -133,7 +134,7 @@ def train(meta_args):
                     "" if args is None else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
-    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, best_val_loss)
+    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, val_loss)
     # save results
     np.save(experiment_path+'/summary', summary)
     if args is not None:

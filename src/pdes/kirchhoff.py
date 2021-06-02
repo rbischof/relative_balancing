@@ -53,7 +53,7 @@ class Kirchhoff():
             b_loss = tf.reduce_mean(((xl + xu + yl + yu)*W)**2 + \
                 ((xl + xu)*dW_dy)**2 + ((yl + yu)*dW_dx)**2 + \
                 ((xl + xu)*Mx)**2 + ((yl + yu)*My)**2)
-            return f_loss, [b_loss]
+            return f_loss, [b_loss], val_loss
         else:
             b1_loss  = tf.reduce_mean((xl*W)**2)
             b2_loss  = tf.reduce_mean((xu*W)**2)

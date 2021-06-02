@@ -1,18 +1,17 @@
-02.06. 08:34:11,00:01:14,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4240.331,3.0996003
-02.06. 08:34:15,00:01:20,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4253.3984,2.8151176
-02.06. 08:34:35,00:01:40,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4137.749,3.3554873
-02.06. 08:35:48,00:02:53,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.008292411,"tf.Tensor(0.020334953, shape=(), dtype=float32)"
-02.06. 08:35:56,00:03:00,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.090176836,0.050742906
-02.06. 08:36:12,00:03:11,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.437553,0.16432165
-02.06. 08:36:14,00:03:18,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.018577088,"tf.Tensor(0.023838742, shape=(), dtype=float32)"
-02.06. 08:36:31,00:03:36,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.16521116,"tf.Tensor(0.31159526, shape=(), dtype=float32)"
-02.06. 08:36:34,00:03:38,experiments/,2,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0010512671,"tf.Tensor(0.017146852, shape=(), dtype=float32)"
-02.06. 08:36:55,00:03:54,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.062044133,"tf.Tensor(0.052870996, shape=(), dtype=float32)"
-02.06. 08:36:58,00:03:59,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.34271935,"tf.Tensor(0.04690855, shape=(), dtype=float32)"
-02.06. 08:37:06,00:03:56,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.011628839,"tf.Tensor(0.022152545, shape=(), dtype=float32)"
-02.06. 08:37:19,00:04:20,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.012971208,"tf.Tensor(0.019820083, shape=(), dtype=float32)"
-02.06. 08:37:40,00:04:12,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.019808209,0.022642322
-02.06. 08:38:31,00:05:06,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.020309204,0.02454584
-02.06. 08:38:34,00:05:40,experiments/,2,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.014447222,0.023445541
-02.06. 08:39:08,00:05:40,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0065977615,"tf.Tensor(0.06558707, shape=(), dtype=float32)"
-02.06. 08:43:26,00:10:26,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.2578638,"tf.Tensor(0.034378044, shape=(), dtype=float32)"
+02.06. 08:53:36,00:00:41,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4051.4924,0.15601687
+02.06. 08:54:17,00:01:16,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4330.6147,0.16381729
+02.06. 08:54:22,00:01:25,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4268.483,0.33246756
+02.06. 08:55:25,00:02:29,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.027160436,0.023188598
+02.06. 08:55:53,00:02:54,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0071108313,0.019263811
+02.06. 08:56:09,00:03:13,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.01827289,0.022420239
+02.06. 08:56:21,00:03:25,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.2440412,0.5335203
+02.06. 08:56:39,00:03:41,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,1.3921933,0.32382804
+02.06. 08:57:12,00:03:46,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.26733252,0.07994036
+02.06. 08:57:21,00:03:49,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0069114263,0.01857382
+02.06. 08:57:23,00:04:09,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.045560535,0.048637077
+02.06. 08:57:29,00:04:31,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.016973725,0.021774169
+02.06. 08:57:49,00:04:15,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.048039425,0.037495304
+02.06. 08:58:04,00:05:07,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.18892458,0.076421164
+02.06. 08:58:19,00:04:53,experiments/,2,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.00738908,0.020286651
+02.06. 08:58:47,00:03:50,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.03130459,0.025085164
+02.06. 08:59:46,00:04:51,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.008625664,0.023960834

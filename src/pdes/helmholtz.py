@@ -35,7 +35,7 @@ class Helmholtz():
 
         if aggregate_boundaries:
             b_loss = tf.reduce_mean((u_pred * (xl + xu + yl + yu))**2)
-            return f_loss, [b_loss]
+            return f_loss, [b_loss], val_loss
         else:
             b1_loss = tf.reduce_mean((u_pred * xl)**2)
             b2_loss = tf.reduce_mean((u_pred * xu)**2)

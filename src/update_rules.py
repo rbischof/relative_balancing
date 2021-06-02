@@ -28,7 +28,7 @@ def lrannealing(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate
     scaled_grads = []
     for i in range(len(grad_f)):
         scaled_grads.append(grad_f[i] + \
-            tf.reduce_sum(tf.stack([lambs[j]*grad_bs[j][i] for j in range(len(grad_bs[j]))], axis=0), axis=0))
+            tf.reduce_sum(tf.stack([lambs[j]*grad_bs[j][i] for j in range(len(grad_bs))], axis=0), axis=0))
 
     # update model
     optimizer.apply_gradients(zip(scaled_grads, model.trainable_variables))

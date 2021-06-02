@@ -111,14 +111,14 @@ def train(meta_args):
                 cooldown = meta_args.patience
                 meltdown = 0
                 best_model.set_weights(model.get_weights())
-            if cooldown <= 0 and epoch > 3000:
+            if cooldown <= 0 and epoch > meta_args.epochs/10:
                 if meta_args.verbose:
                     print(' reducing LR to', (optimizer.lr*meta_args.factor).numpy())
                 cooldown = meta_args.patience
                 meltdown += 1
                 tf.keras.backend.set_value(optimizer.lr, optimizer.lr*meta_args.factor)
                 model.set_weights(best_model.get_weights())
-            if meltdown > 3:
+            if meltdown > 5:
                 if meta_args.verbose:
                     print('early stopping')
                 break
@@ -134,7 +134,7 @@ def train(meta_args):
                     "" if args is None else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
-    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, val_loss)
+    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, best_val_loss)
     # save results
     np.save(experiment_path+'/summary', summary)
     if args is not None:

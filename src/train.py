@@ -42,27 +42,28 @@ def train(meta_args):
     # initialize update rule
     if meta_args.update_rule == 'manual':
         update_rule = manual
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
+        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        alpha = [1.]
     elif meta_args.update_rule == 'lrannealing':
         update_rule = lrannealing
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}\
-            .update({"alpha": [tf.constant(0.)]+[tf.constant(.9)]*meta_args.epochs})
+        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
+        alpha = [tf.constant(0.)]+[tf.constant(.9)]*(meta_args.epochs+1)
     elif meta_args.update_rule == 'relative':
         update_rule = relative
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}\
-            .update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})\
-            .update({"alpha": [tf.constant(1.), tf.constant(0.)]+[tf.constant(.999)]*meta_args.epochs})\
-            .update({"T": meta_args.T})
+        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args.update({"T": tf.constant(meta_args.T)})
+        alpha = [tf.constant(1.), tf.constant(0.)]+[tf.constant(.999)]*(meta_args.epochs+1)
     else:
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
 
-    experiment_path = create_directory(meta_args.path)
+    experiment_path = create_directory(os.path.join('experiments', meta_args.path))
 
     summary = []
-    if args is not None:
-        args_summary = []
-        args_keys = args.keys()
+    args_summary = []
+    args_keys = args.keys()
     best_loss = 1e9
+    best_val_loss = 1e9
     cooldown = meta_args.patience
     meltdown = 0
     
@@ -76,18 +77,21 @@ def train(meta_args):
     x, y, u = pde.generate_data()
     print('start training of', meta_args.pde, 'in', experiment_path)
     for epoch in range(meta_args.epochs):
-            
+
         f_loss, b_losses, val_loss, args = update_rule(model, 
                             optimizer, 
                             pde, 
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
                             tf.constant(u, dtype=tf.float32),
-                            args)
+                            args,
+                            alpha[0])
         loss = f_loss + tf.reduce_sum(b_losses)
             
         if meta_args.resample:
             x, y, u = pde.generate_data()
+        if len(alpha) > 1:
+            alpha = alpha[1:]
                 
         if epoch % 1000 == 0:
             
@@ -96,13 +100,13 @@ def train(meta_args):
 
             summary.append([loss, val_loss, f_loss]+b_losses)
 
-            if args is not None:
-                e_args = gpu_to_numpy(args.values())
-                args_summary.append(e_args)
+            e_args = gpu_to_numpy(args.values())
+            args_summary.append(e_args)
         
             # reduce lr or stop early if model doesn't improve after warmup phase
             if loss < best_loss:
                 best_loss = loss
+                best_val_loss = val_loss
                 cooldown = meta_args.patience
                 meltdown = 0
                 best_model.set_weights(model.get_weights())
@@ -129,6 +133,7 @@ def train(meta_args):
                     "" if args is None else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
+    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, val_loss)
     # save results
     np.save(experiment_path+'/summary', summary)
     if args is not None:

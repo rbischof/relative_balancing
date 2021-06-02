@@ -11,8 +11,9 @@ class Helmholtz():
     def generate_data(self):
         return self.generator.__getitem__(None)
 
-    def calculate_loss(model, x, y, u, aggregate_boundaries=False, training=False):
-
+    def calculate_loss(self, model, x, y, u, aggregate_boundaries=False, training=False):
+        print('helmholz', x, y)
+        print(tf.concat([x, y], axis=-1))
         # predictions and derivatives
         u_pred = model(tf.concat([x, y], axis=-1), training=training)
         du_dx, du_dy = tf.gradients(u_pred, [x, y])

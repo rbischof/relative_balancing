@@ -4,12 +4,15 @@ import tensorflow as tf
 TOL = 1e-5
 
 class Kirchhoff():
-    def __init__(self, batch_size=1024, batches_per_epoch=1000, E=30000, nue=.2, h=.2):
-        self.generator = KirchhoffDataGenerator(batch_size, batches_per_epoch)
+    def __init__(self, batch_size=1024, batches_per_epoch=1000, E=30000, nue=.2, h=.2, a=10., b=10, p0=.015):
+        self.generator = KirchhoffDataGenerator(batch_size, batches_per_epoch, a, b, p0)
         self.num_b_losses = 12
         self.E = E
         self.nue = nue
         self.h = h
+        self.a = a
+        self.b = b
+        self.p0 = p0
         self.D = (E * h**3)/(12*(1-nue**2))
 
     def generate_data(self):
@@ -68,11 +71,12 @@ class Kirchhoff():
                             b7_loss, b8_loss, b9_loss, b10_loss, b11_loss, b12_loss], val_loss
 
 class KirchhoffDataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, batch_size, batches_per_epoch=1000, a=10., b=10.):
+    def __init__(self, batch_size, batches_per_epoch=1000, a=10., b=10., p0=.015):
         self.batch_size = batch_size
         self.batches_per_epoch = batches_per_epoch
         self.a = a
         self.b = b
+        self.p0 = p0
 
     def __len__(self):
         return self.batches_per_epoch
@@ -91,9 +95,13 @@ class KirchhoffDataGenerator(tf.keras.utils.Sequence):
                                     np.zeros((self.batch_size//8, 1)),
                                     self.b*np.ones((self.batch_size//8, 1))], axis=0)]
                                 
-        x = tf.constant(tf.concat([train_BC[0], train_internal[:,:1]], axis=0), dtype=tf.float32)
-        y = tf.constant(tf.concat([train_BC[1], train_internal[:,1:]], axis=0), dtype=tf.float32)
+        x = tf.cast(tf.concat([train_BC[0], train_internal[:,:1]], axis=0), dtype=tf.float32)
+        y = tf.cast(tf.concat([train_BC[1], train_internal[:,1:]], axis=0), dtype=tf.float32)
         w = self.p0 / (np.pi**4 * ((1/self.a**2 + 1/self.b**2)**2)) * \
-            tf.math.sin(np.pi*x/self.a) * tf.self.sin(np.pi*y*self.b)
+            tf.math.sin(np.pi*x/self.a) * tf.math.sin(np.pi*y*self.b)
     
         return x, y, w
+
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        return self.__data_generation(None)

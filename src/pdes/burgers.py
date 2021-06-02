@@ -11,7 +11,7 @@ class Burgers():
     def generate_data(self):
         return self.generator.__getitem__(None)
 
-    def calculate_loss(model, x, t, u, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model, x, t, u, aggregate_boundaries=False, training=False):
         # predictions and derivatives
         u_pred = model(tf.concat([x, t], axis=-1), training=False)
         du_dx, du_dt = tf.gradients(u_pred, [x, t])

@@ -169,7 +169,7 @@ def train(meta_args):
     if not isinstance(model, list):
         best_model.save(experiment_path+'/model')
     else:
-        model.save(experiment_path+'/model')
+        model[0].save(experiment_path+'/model')
         
 
 parser = argparse.ArgumentParser()

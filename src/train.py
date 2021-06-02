@@ -11,6 +11,8 @@ from pdes.burgers import Burgers
 from pdes.kirchhoff import Kirchhoff
 from utils import *
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
+
 def train(meta_args):
 
     # initialize network
@@ -44,16 +46,27 @@ def train(meta_args):
         update_rule = manual
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         alpha = [1.]
+        args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'lrannealing':
         update_rule = lrannealing
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
         alpha = [tf.constant(0.)]+[tf.constant(.9)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'relative':
         update_rule = relative
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T)})
         alpha = [tf.constant(1.), tf.constant(0.)]+[tf.constant(.999)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0])})
+    elif meta_args.update_rule == 'gradnorm':
+        update_rule = gradnorm
+        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        alpha = [tf.constant(0.)]+[tf.constant(meta_args.T)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0])})
+        model = [model, GradNormArgs(nterms=num_b_losses+1, alpha=alpha)]
+        optimizer = [optimizer]*2
     else:
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
 
@@ -61,7 +74,8 @@ def train(meta_args):
 
     summary = []
     args_summary = []
-    args_keys = args.keys()
+    if isinstance(args, dict):
+        args_keys = args.keys()
     best_loss = 1e9
     best_val_loss = 1e9
     cooldown = meta_args.patience
@@ -77,22 +91,22 @@ def train(meta_args):
     x, y, u = pde.generate_data()
     print('start training of', meta_args.pde, 'in', experiment_path)
     for epoch in range(meta_args.epochs):
-
-        f_loss, b_losses, val_loss, args = update_rule(model, 
+        
+        f_loss, b_losses, val_loss, oargs = update_rule(model, 
                             optimizer, 
                             pde, 
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
                             tf.constant(u, dtype=tf.float32),
-                            args,
-                            alpha[0],
-                            meta_args.aggregate_boundaries)
+                            args)
         loss = f_loss + tf.reduce_sum(b_losses)
-            
+        
+        if epoch == 0:
+            args = oargs.copy()
         if meta_args.resample:
             x, y, u = pde.generate_data()
         if len(alpha) > 1:
-            alpha = alpha[1:]
+            args['alpha'] = alpha[1:]
                 
         if epoch % 1000 == 0:
             
@@ -100,9 +114,13 @@ def train(meta_args):
             b_losses  = gpu_to_numpy(b_losses)
 
             summary.append([loss, val_loss, f_loss]+b_losses)
-
-            e_args = gpu_to_numpy(args.values())
-            args_summary.append(e_args)
+            
+            if isinstance(args, dict):
+                e_args = gpu_to_numpy(args.values())
+                args_summary.append(e_args)
+            else:
+                e_args = gpu_to_numpy(args.variables())
+                args_summary.append(e_args)
         
             # reduce lr or stop early if model doesn't improve after warmup phase
             if loss < best_loss:
@@ -110,14 +128,21 @@ def train(meta_args):
                 best_val_loss = val_loss
                 cooldown = meta_args.patience
                 meltdown = 0
-                best_model.set_weights(model.get_weights())
+                if not isinstance(model, list):
+                    best_model.set_weights(model.get_weights())
             if cooldown <= 0 and epoch > meta_args.epochs/10:
-                if meta_args.verbose:
-                    print(' reducing LR to', (optimizer.lr*meta_args.factor).numpy())
                 cooldown = meta_args.patience
                 meltdown += 1
-                tf.keras.backend.set_value(optimizer.lr, optimizer.lr*meta_args.factor)
-                model.set_weights(best_model.get_weights())
+                if not isinstance(model, list):
+                    if meta_args.verbose:
+                        print(' reducing LR to', (optimizer.lr*meta_args.factor).numpy())
+                    tf.keras.backend.set_value(optimizer.lr, optimizer.lr*meta_args.factor)
+                    model.set_weights(best_model.get_weights())
+                else:
+                    if meta_args.verbose:
+                        print(' reducing LR to', (optimizer[0].lr*meta_args.factor).numpy())
+                    tf.keras.backend.set_value(optimizer[0].lr, optimizer[0].lr*meta_args.factor)
+                    tf.keras.backend.set_value(optimizer[1].lr, optimizer[1].lr*meta_args.factor)
             if meltdown > 5:
                 if meta_args.verbose:
                     print('early stopping')
@@ -131,7 +156,7 @@ def train(meta_args):
                       "val_loss {:<.3e}".format(val_loss),
                     "F {0:<.2e}".format(f_loss), 
                     "B ", b_losses,
-                    "" if args is None else list(zip(args_keys, e_args)),
+                    "" if not isinstance(args, dict) else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
     append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, best_val_loss)
@@ -139,8 +164,10 @@ def train(meta_args):
     np.save(experiment_path+'/summary', summary)
     if args is not None:
         np.save(experiment_path+'/args_summary', args_summary)
-    best_model.save(experiment_path+'/model')
-    
+    if not isinstance(model, list):
+        best_model.save(experiment_path+'/model')
+    else:
+        model.save(experiment_path+'/model')
         
 
 parser = argparse.ArgumentParser()

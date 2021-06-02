@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 @tf.function
-def manual(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_boundaries=False):
+def manual(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
     f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
 
     loss = args['lam'+str(0)]*f_loss + tf.reduce_sum([args['lam'+str(i+1)]*b_losses[i] for i in range(len(b_losses))])
@@ -13,7 +13,9 @@ def manual(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_boun
 
 
 @tf.function
-def lrannealing(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_boundaries=False):
+def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
+    alpha = args['alpha']
+    
     f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
 
     grad_f  = tf.gradients(f_loss,  model.trainable_variables, unconnected_gradients='zero')
@@ -37,7 +39,9 @@ def lrannealing(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate
 
 
 @tf.function
-def relative(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_boundaries=False):
+def relative(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
+    alpha = args['alpha']
+    
     f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
 
     T = args['T']
@@ -61,19 +65,24 @@ def relative(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_bo
 
 
 @tf.function
-def grad_norm(model, optimizer, pde, x, y, u, args:dict, alpha=None, aggregate_boundaries=False):
-    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
+def gradnorm(model, optimizers, pde, x, y, u, args, aggregate_boundaries=False):
+    f_loss, b_losses, val_loss = pde.calculate_loss(model[0], x, y, u, aggregate_boundaries, training=True)
 
-    loss = tf.reduce_sum([f_loss*args['w0']] + [b_losses[i]*args['w'+str(i+1)] for i in range(len(b_losses))])
+    L_i = model[1]([f_loss]+b_losses)
+    L_W = tf.reduce_sum(L_i)
 
-    GiW = [tf.norm(tf.gradients(args['w'+str(i)]*Li, model.trainable_variables[-2])[0]) for i, Li in enumerate([f_loss]+b_losses)]
+    GiW = [tf.norm(tf.gradients(L_i[i], model[0].trainable_variables[-2])[0]) for i in range(len(b_losses)+1)]
     GiW_average = tf.reduce_mean(tf.stack(GiW, axis=0), axis=0)
-    li_tilde = [Li / args['l'+str(i)] for i, Li in enumerate([f_loss]+b_losses)]
+    li_tilde = [li / args['l'+str(i)] for i, li in enumerate([f_loss]+b_losses)]
     li_tilde_average = tf.reduce_mean(tf.stack(li_tilde, axis=0), axis=0)
-    Ri = [Li / li_tilde_average for Li in li_tilde]
+    Ri = [li / li_tilde_average for li in li_tilde]
 
-    L_grad = tf.reduce_sum(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0), axis=0)
-    T = args['T']
-    losses = [f_loss] + b_losses
+    L_w = tf.reduce_sum(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0), axis=0)
+    grad_L_w = tf.gradients(L_w, model[1].trainable_variables)
+    optimizers[1].apply_gradients(zip(grad_L_w, model[1].trainable_variables))
+    grad_L_W = tf.gradients(L_W, model[0].trainable_variables)
+    optimizers[0].apply_gradients(zip(grad_L_W, model[0].trainable_variables))
 
-    return f_loss, b_losses, val_loss, args
+    new_args = {'l'+str(i): l for i, l in enumerate([f_loss]+b_losses)}
+    new_args.update({'alpha': args['alpha']})
+    return f_loss, b_losses, val_loss, new_args

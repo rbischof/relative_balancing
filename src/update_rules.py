@@ -73,7 +73,7 @@ def gradnorm(model, optimizers, pde, x, y, u, args, aggregate_boundaries=False):
     li_tilde_average = tf.reduce_mean(tf.stack(li_tilde, axis=0), axis=0)
     Ri = [li / li_tilde_average for li in li_tilde]
 
-    L_w = tf.reduce_sum(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0), axis=0)
+    L_w = tf.reduce_sum(tf.math.abs(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0)), axis=0)
     grad_L_w = tf.gradients(L_w, model[1].trainable_variables)
     optimizers[1].apply_gradients(zip(grad_L_w, model[1].trainable_variables))
     grad_L_W = tf.gradients(L_W, model[0].trainable_variables)

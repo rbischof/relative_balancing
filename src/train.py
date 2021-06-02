@@ -61,8 +61,7 @@ def train(meta_args):
         args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
-        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args = {"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         alpha = [tf.constant(0.)]+[tf.constant(meta_args.T)]*(meta_args.epochs+1)
         args.update({"alpha": tf.constant(alpha[0])})
         model = [model, GradNormArgs(nterms=num_b_losses+1, alpha=alpha)]

@@ -14,8 +14,6 @@ def manual(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False
 
 @tf.function
 def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
-    alpha = args['alpha']
-    
     f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
 
     grad_f  = tf.gradients(f_loss,  model.trainable_variables, unconnected_gradients='zero')
@@ -25,7 +23,7 @@ def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=
     mean_grad_f = tf.reduce_mean(tf.abs(tf.concat([tf.reshape(g, (-1,)) for g in grad_f], axis=-1)))
     lambs_hat = [mean_grad_f / (tf.reduce_mean(tf.abs(tf.concat([tf.reshape(g, (-1,)) for g in grad_bs[i]], axis=-1)))+1e-8) for i in range(len(b_losses))] # add small epsilon to prevent division by 0
 
-    lambs = [alpha*args['lam'+str(i)] + (1-alpha)*lambs_hat[i] for i in range(len(b_losses))]
+    lambs = [args['alpha']*args['lam'+str(i)] + (1-args['alpha'])*lambs_hat[i] for i in range(len(b_losses))]
              
     scaled_grads = []
     for i in range(len(grad_f)):
@@ -40,15 +38,13 @@ def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=
 
 @tf.function
 def relative(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
-    alpha = args['alpha']
-    
     f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
 
     T = args['T']
     losses = [f_loss] + b_losses
 
     lambs_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l'+str(i)]*T) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
-    lambs = [alpha*args['lam'+str(i)] + (1-alpha)*lambs_hat[i] for i in range(len(losses))]
+    lambs = [args['alpha']*args['lam'+str(i)] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
 
     loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])
 

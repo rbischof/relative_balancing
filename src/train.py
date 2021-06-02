@@ -98,7 +98,8 @@ def train(meta_args):
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
                             tf.constant(u, dtype=tf.float32),
-                            args)
+                            args,
+                            meta_args.aggregate_boundaries)
         loss = f_loss + tf.reduce_sum(b_losses)
         
         if epoch == 0:
@@ -106,7 +107,8 @@ def train(meta_args):
         if meta_args.resample:
             x, y, u = pde.generate_data()
         if len(alpha) > 1:
-            args['alpha'] = alpha[1:]
+            args['alpha'] = alpha[1]
+            alpha = alpha[1:]
                 
         if epoch % 1000 == 0:
             

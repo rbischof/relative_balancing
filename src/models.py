@@ -27,6 +27,6 @@ class GradNormArgs(tf.Module):
             self.L_set = True
     
     def __call__(self, X):
-        W_0 = [w + tf.reduce_min(self.W) for w in self.W]
+        W_0 = [w - tf.reduce_min(self.W) for w in self.W]
         W_n = [w / tf.reduce_mean(W_0) for w in W_0]
         return [x*w for w, x in zip(W_n, X)]

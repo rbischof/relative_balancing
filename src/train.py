@@ -151,7 +151,7 @@ parser.add_argument('--nodes', default=32, type=int, help='number of nodes')
 parser.add_argument('--network', default='fc', type=str, help='type of network')
 
 parser.add_argument('--optimizer', default='adam', type=str, help='type of optimizer')
-parser.add_argument('--lr', default=5e-4, type=float, help='learning rate')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 

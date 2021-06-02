@@ -1,0 +1,43 @@
+Sender: LSF System <lsfadmin@lo-s4-010>
+Subject: Job 16339653: <python train.py --layers 1 --nodes 32 --pde --update_rule manual> in cluster <leonhard> Exited
+
+Job <python train.py --layers 1 --nodes 32 --pde --update_rule manual> was submitted from host <lo-login-02> by user <rabischof> in cluster <leonhard> at Wed Jun  2 10:24:33 2021
+Job was executed on host(s) <lo-s4-010>, in queue <gpu.4h>, as user <rabischof> in cluster <leonhard> at Wed Jun  2 10:24:49 2021
+</cluster/home/rabischof> was used as the home directory.
+</cluster/home/rabischof/relative/relative_balancing/src> was used as the working directory.
+Started at Wed Jun  2 10:24:49 2021
+Terminated at Wed Jun  2 10:24:55 2021
+Results reported at Wed Jun  2 10:24:55 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python train.py --layers 1 --nodes 32 --pde --update_rule manual
+------------------------------------------------------------
+
+Exited with exit code 2.
+
+Resource usage summary:
+
+    CPU time :                                   2.97 sec.
+    Max Memory :                                 139 MB
+    Average Memory :                             121.00 MB
+    Total Requested Memory :                     1500.00 MB
+    Delta Memory :                               1361.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   29 sec.
+    Turnaround time :                            22 sec.
+
+The output (if any) follows:
+
+2021-06-02 10:24:52.239966: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+usage: train.py [-h] [--path PATH] [--layers LAYERS] [--nodes NODES]
+                [--network NETWORK] [--optimizer OPTIMIZER] [--lr LR]
+                [--patience PATIENCE] [--factor FACTOR] [--pde PDE]
+                [--update_rule UPDATE_RULE] [--T T] [--alpha ALPHA]
+                [--aggregate_boundaries] [--epochs EPOCHS] [--resample]
+                [--verbose]
+train.py: error: argument --pde: expected one argument

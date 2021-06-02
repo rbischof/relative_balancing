@@ -1,0 +1,104 @@
+Sender: LSF System <lsfadmin@lo-s4-074>
+Subject: Job 16339739: <python train.py --layers 3 --nodes 256 --pde helmholtz --update_rule manual --resample --aggregate_boundaries> in cluster <leonhard> Exited
+
+Job <python train.py --layers 3 --nodes 256 --pde helmholtz --update_rule manual --resample --aggregate_boundaries> was submitted from host <lo-login-02> by user <rabischof> in cluster <leonhard> at Wed Jun  2 10:32:37 2021
+Job was executed on host(s) <lo-s4-074>, in queue <gpu.4h>, as user <rabischof> in cluster <leonhard> at Wed Jun  2 10:33:19 2021
+</cluster/home/rabischof> was used as the home directory.
+</cluster/home/rabischof/relative/relative_balancing/src> was used as the working directory.
+Started at Wed Jun  2 10:33:19 2021
+Terminated at Wed Jun  2 10:33:29 2021
+Results reported at Wed Jun  2 10:33:29 2021
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python train.py --layers 3 --nodes 256 --pde helmholtz --update_rule manual --resample --aggregate_boundaries
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :                                   5.45 sec.
+    Max Memory :                                 982 MB
+    Average Memory :                             204.00 MB
+    Total Requested Memory :                     5500.00 MB
+    Delta Memory :                               4518.00 MB
+    Max Swap :                                   -
+    Max Processes :                              3
+    Max Threads :                                4
+    Run time :                                   15 sec.
+    Turnaround time :                            52 sec.
+
+The output (if any) follows:
+
+2021-06-02 10:33:22.570413: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-02 10:33:26.465810: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcuda.so.1
+2021-06-02 10:33:26.527337: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1716] Found device 0 with properties: 
+pciBusID: 0000:1b:00.0 name: GeForce RTX 2080 Ti computeCapability: 7.5
+coreClock: 1.545GHz coreCount: 68 deviceMemorySize: 10.76GiB deviceMemoryBandwidth: 573.69GiB/s
+2021-06-02 10:33:26.527391: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-02 10:33:26.531751: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcublas.so.10
+2021-06-02 10:33:26.535520: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcufft.so.10
+2021-06-02 10:33:26.536551: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcurand.so.10
+2021-06-02 10:33:26.540009: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusolver.so.10
+2021-06-02 10:33:26.542509: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusparse.so.10
+2021-06-02 10:33:26.548816: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudnn.so.7
+2021-06-02 10:33:26.551722: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1858] Adding visible gpu devices: 0
+2021-06-02 10:33:26.552454: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN)to use the following CPU instructions in performance-critical operations:  AVX512F
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2021-06-02 10:33:26.561658: I tensorflow/core/platform/profile_utils/cpu_utils.cc:104] CPU Frequency: 2600000000 Hz
+2021-06-02 10:33:26.561846: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x4333bb0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2021-06-02 10:33:26.561867: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2021-06-02 10:33:26.737061: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x43b5d10 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2021-06-02 10:33:26.737098: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): GeForce RTX 2080 Ti, Compute Capability 7.5
+2021-06-02 10:33:26.738683: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1716] Found device 0 with properties: 
+pciBusID: 0000:1b:00.0 name: GeForce RTX 2080 Ti computeCapability: 7.5
+coreClock: 1.545GHz coreCount: 68 deviceMemorySize: 10.76GiB deviceMemoryBandwidth: 573.69GiB/s
+2021-06-02 10:33:26.738725: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-02 10:33:26.738749: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcublas.so.10
+2021-06-02 10:33:26.738761: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcufft.so.10
+2021-06-02 10:33:26.738771: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcurand.so.10
+2021-06-02 10:33:26.738782: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusolver.so.10
+2021-06-02 10:33:26.738792: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcusparse.so.10
+2021-06-02 10:33:26.738802: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudnn.so.7
+2021-06-02 10:33:26.741466: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1858] Adding visible gpu devices: 0
+2021-06-02 10:33:26.742216: I tensorflow/stream_executor/platform/default/dso_loader.cc:48] Successfully opened dynamic library libcudart.so.10.1
+2021-06-02 10:33:27.397721: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1257] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-06-02 10:33:27.397768: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1263]      0 
+2021-06-02 10:33:27.397780: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1276] 0:   N 
+2021-06-02 10:33:27.400780: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1402] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10102 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2080 Ti, pci bus id: 0000:1b:00.0, compute capability: 7.5)
+start training of helmholtz in experiments/experiments_32/
+helmholz Tensor("x:0", shape=(1022, 1), dtype=float32) Tensor("y:0", shape=(1022, 1), dtype=float32)
+Tensor("concat:0", shape=(1022, 2), dtype=float32)
+Traceback (most recent call last):
+  File "train.py", line 168, in <module>
+    train(args)
+  File "train.py", line 81, in train
+    f_loss, b_losses, val_loss, args = update_rule(model, 
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/def_function.py", line 780, in __call__
+    result = self._call(*args, **kwds)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/def_function.py", line 823, in _call
+    self._initialize(args, kwds, add_initializers_to=initializers)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/def_function.py", line 696, in _initialize
+    self._stateful_fn._get_concrete_function_internal_garbage_collected(  # pylint: disable=protected-access
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/function.py", line 2855, in _get_concrete_function_internal_garbage_collected
+    graph_function, _, _ = self._maybe_define_function(args, kwargs)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/function.py", line 3213, in _maybe_define_function
+    graph_function = self._create_graph_function(args, kwargs)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/function.py", line 3065, in _create_graph_function
+    func_graph_module.func_graph_from_py_func(
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/framework/func_graph.py", line 986, in func_graph_from_py_func
+    func_outputs = python_func(*func_args, **func_kwargs)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/eager/def_function.py", line 600, in wrapped_fn
+    return weak_wrapped_fn().__wrapped__(*args, **kwds)
+  File "/cluster/apps/python/3.8.5_gpu_gcc630/x86_64/lib64/python3.8/site-packages/tensorflow/python/framework/func_graph.py", line 973, in wrapper
+    raise e.ag_error_metadata.to_exception(e)
+AssertionError: in user code:
+
+    /cluster/home/rabischof/relative/relative_balancing/src/update_rules.py:9 manual  *
+        assert (len(b_losses)+1) == len(args)
+
+    AssertionError: 
+

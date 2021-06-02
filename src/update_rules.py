@@ -6,7 +6,6 @@ def manual(model, optimizer, pde, x, y, u, args:dict=None, alpha=None):
 
     if args == None:
         args = [1.]*(len(b_losses)+1)
-    assert (len(b_losses)+1) == len(args)
 
     loss = args['lam'+str(0)]*f_loss + tf.reduce_sum([args['lam'+str(i+1)]*b_losses[i] for i in range(len(b_losses))])
 

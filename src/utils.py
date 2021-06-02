@@ -28,16 +28,21 @@ def create_directory(path:str):
         os.makedirs(path)
     return path
 
-def append_to_results(ex_time:str, meta_args, loss_error:float, val_error:float):
+def append_to_results(ex_time:str, meta_args, train_error:float, val_error:float):
     # Open file in append mode
     if not os.path.exists("experiments"):
         os.makedirs("experiments")
     
     args = [getattr(meta_args, arg) for arg in vars(meta_args)]
 
+    if tf.is_tensor(train_error):
+        train_error = train_error.numpy()
+    if tf.is_tensor(val_error):
+        val_error = val_error.numpy()
+
     with open("experiments/results.csv", 'a+', newline='') as write_obj:
         # Create a writer object from csv module
         csv_writer = writer(write_obj)
         # Add contents of list as last row in the csv file
-        csv_writer.writerow([strftime('%d.%m. %H:%M:%S', gmtime(time())), ex_time]+args+[loss_error, val_error])
+        csv_writer.writerow([strftime('%d.%m. %H:%M:%S', gmtime(time())), ex_time]+args+[train_error, val_error])
 

@@ -133,7 +133,7 @@ def train(meta_args):
                     "" if args is None else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
-    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, val_loss)
+    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, best_val_loss)
     # save results
     np.save(experiment_path+'/summary', summary)
     if args is not None:

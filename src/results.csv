@@ -1,0 +1,18 @@
+02.06. 08:34:11,00:01:14,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4240.331,3.0996003
+02.06. 08:34:15,00:01:20,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4253.3984,2.8151176
+02.06. 08:34:35,00:01:40,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,4137.749,3.3554873
+02.06. 08:35:48,00:02:53,experiments/,1,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.008292411,"tf.Tensor(0.020334953, shape=(), dtype=float32)"
+02.06. 08:35:56,00:03:00,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.090176836,0.050742906
+02.06. 08:36:12,00:03:11,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.437553,0.16432165
+02.06. 08:36:14,00:03:18,experiments/,2,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.018577088,"tf.Tensor(0.023838742, shape=(), dtype=float32)"
+02.06. 08:36:31,00:03:36,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.16521116,"tf.Tensor(0.31159526, shape=(), dtype=float32)"
+02.06. 08:36:34,00:03:38,experiments/,2,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0010512671,"tf.Tensor(0.017146852, shape=(), dtype=float32)"
+02.06. 08:36:55,00:03:54,experiments/,3,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.062044133,"tf.Tensor(0.052870996, shape=(), dtype=float32)"
+02.06. 08:36:58,00:03:59,experiments/,1,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.34271935,"tf.Tensor(0.04690855, shape=(), dtype=float32)"
+02.06. 08:37:06,00:03:56,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.011628839,"tf.Tensor(0.022152545, shape=(), dtype=float32)"
+02.06. 08:37:19,00:04:20,experiments/,1,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.012971208,"tf.Tensor(0.019820083, shape=(), dtype=float32)"
+02.06. 08:37:40,00:04:12,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.019808209,0.022642322
+02.06. 08:38:31,00:05:06,experiments/,3,128,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.020309204,0.02454584
+02.06. 08:38:34,00:05:40,experiments/,2,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.014447222,0.023445541
+02.06. 08:39:08,00:05:40,experiments/,3,256,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,False,False,0.0065977615,"tf.Tensor(0.06558707, shape=(), dtype=float32)"
+02.06. 08:43:26,00:10:26,experiments/,2,32,fc,adam,0.0005,3,0.1,helmholtz,manual,1.0,0.999,False,100000,True,False,0.2578638,"tf.Tensor(0.034378044, shape=(), dtype=float32)"

@@ -4,3 +4,4 @@ src/experiments
 *.csv
 .vscode
 *.csv#
+lsf.*

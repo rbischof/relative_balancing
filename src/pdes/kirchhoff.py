@@ -70,7 +70,7 @@ class Kirchhoff():
 
         if aggregate_boundaries:
             b_loss = tf.reduce_mean(((xl + xu + yl + yu)*W)**2 + \
-                ((xl + xu)*dW_dy)**2 + ((yl + yu)*dW_dx)**2 + \
+                #((xl + xu)*dW_dy)**2 + ((yl + yu)*dW_dx)**2 + \
                 ((xl + xu)*Mx)**2 + ((yl + yu)*My)**2)
             return f_loss, [b_loss]
         else:

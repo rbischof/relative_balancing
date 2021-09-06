@@ -4,7 +4,7 @@ from train import train
 from bayes_opt import BayesianOptimization
 
 param_ranges = {
-    'layers': (1, 5),
+    'layers': (1, 6),
     'nodes': (16, 512),
     'lr_0': (1, 10),
     'lr_1': (-6, -3),
@@ -36,6 +36,13 @@ def training_wrapper(meta_args):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', default='experiments/', type=str, help='path where to store the results')
+
+parser.add_argument('--network', default='fc', type=str, help='type of network')
+
+parser.add_argument('--optimizer', default='adam', type=str, help='type of optimizer')
+parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
+parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
+parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
 parser.add_argument('--pde', default='helmholtz', type=str, help='type of pde to fit')
 parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')

@@ -75,8 +75,7 @@ def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_bou
 
     lambs_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l'+str(i)]*T) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
     lambs0_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l0'+str(i)]*T) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
-    lookback = tf.constant(1.) if tf.random.uniform((1,)) > args['rho'] else tf.constant(0.)
-    lambs = [lookback*args['alpha']*args['lam'+str(i)] + (1-lookback)*args['alpha']*lambs0_hat[i] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
+    lambs = [args['rho']*args['alpha']*args['lam'+str(i)] + (1-args['rho'])*args['alpha']*lambs0_hat[i] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
 
     loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])
 

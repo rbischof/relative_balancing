@@ -46,34 +46,35 @@ def train(meta_args):
         update_rule = manual
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         alpha = [1.]
-        args.update({"alpha": tf.constant(alpha[0])})
+        args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
     elif meta_args.update_rule == 'lrannealing':
         update_rule = lrannealing
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
-        alpha = [[tf.constant(1.) for _ in range(99)] + [tf.constant(meta_args.alpha)]]*((meta_args.epochs+1)//100)
+        alpha = [[tf.constant(1.) for _ in range(99)] + [tf.constant(meta_args.alpha, dtype=tf.float32)]]*((meta_args.epochs+1)//100)
         alpha = [a for sub_alpha in alpha for a in sub_alpha]
-        args.update({"alpha": tf.constant(alpha[0])})
+        args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
     elif meta_args.update_rule == 'softadapt':
         update_rule = softadapt
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
-        args.update({"T": tf.constant(meta_args.T)})
-        alpha = [tf.constant(meta_args.alpha)]*(meta_args.epochs+1)
+        args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
+        alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]*(meta_args.epochs+1)
         args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'softadapt_rnd_lookback':
         update_rule = softadapt_rnd_lookback
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"l0"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
-        args.update({"T": tf.constant(meta_args.T)})
-        args.update({"rho": tf.constant(meta_args.rho)})
-        alpha = [tf.constant(meta_args.alpha)]*(meta_args.epochs+1)
-        args.update({"alpha": tf.constant(alpha[0])})
+        args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
+        rho = (np.random.uniform(size=meta_args.epochs+1) > meta_args.rho).astype(int).astype(np.float32)
+        args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
+        alpha = [tf.constant(meta_args.alpha, tf.float32)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
         args = {"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
-        alpha = [tf.constant(0.)]+[tf.constant(meta_args.T)]*(meta_args.epochs+1)
-        args.update({"alpha": tf.constant(alpha[0])})
+        alpha = [tf.constant(0.)]+[tf.constant(meta_args.T, dtype=tf.float32)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
         model = [model, GradNormArgs(nterms=num_b_losses+1, alpha=alpha)]
         optimizer = [optimizer]*2
     else:
@@ -121,6 +122,8 @@ def train(meta_args):
         if len(alpha) > 1:
             args['alpha'] = alpha[1]
             alpha = alpha[1:]
+            args['rnd'] = rho[1]
+            rho = rho[1:]
                 
         if epoch % 1000 == 0:
             x, y, u = pde.validation_batch()

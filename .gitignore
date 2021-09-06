@@ -1,0 +1,6 @@
+src/experiments
+*/__pycache__
+*.sh
+*.csv
+.vscode
+*.csv#

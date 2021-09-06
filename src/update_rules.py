@@ -1,20 +1,21 @@
 import tensorflow as tf
+import numpy as np
 
 @tf.function
-def manual(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
+def manual(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     loss = args['lam'+str(0)]*f_loss + tf.reduce_sum([args['lam'+str(i+1)]*b_losses[i] for i in range(len(b_losses))])
 
     # update model
     grads = tf.gradients(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    return loss, b_losses, val_loss, args
+    return loss, b_losses, args
 
 
 @tf.function
-def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
+def lrannealing(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     grad_f  = tf.gradients(f_loss,  model.trainable_variables, unconnected_gradients='zero')
     grad_bs = [tf.gradients(b_losses[i], model.trainable_variables, unconnected_gradients='zero') for i in range(len(b_losses))]
@@ -32,13 +33,18 @@ def lrannealing(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=
 
     # update model
     optimizer.apply_gradients(zip(scaled_grads, model.trainable_variables))
+    
+    # update args
+    args = args.copy()
+    for i in range(len(b_losses)):
+        args['lam'+str(i)] = lambs[i]
 
-    return f_loss, b_losses, val_loss, args
+    return f_loss, b_losses, args
 
 
 @tf.function
-def relative(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses, val_loss = pde.calculate_loss(model, x, y, u, aggregate_boundaries, training=True)
+def softadapt(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     T = args['T']
     losses = [f_loss] + b_losses
@@ -57,12 +63,38 @@ def relative(model, optimizer, pde, x, y, u, args:dict, aggregate_boundaries=Fal
     for i in range(len(b_losses)+1):
         args['lam'+str(i)] = lambs[i]
         args['l'+str(i)] = losses[i]
-    return f_loss, b_losses, val_loss, args
+    return f_loss, b_losses, args
 
 
 @tf.function
-def gradnorm(model, optimizers, pde, x, y, u, args, aggregate_boundaries=False):
-    f_loss, b_losses, val_loss = pde.calculate_loss(model[0], x, y, u, aggregate_boundaries, training=True)
+def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
+
+    T = args['T']
+    losses = [f_loss] + b_losses
+
+    lambs_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l'+str(i)]*T) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
+    lambs0_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l0'+str(i)]*T) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
+    lookback = tf.constant(1.) if tf.random.uniform((1,)) > args['rho'] else tf.constant(0.)
+    lambs = [lookback*args['alpha']*args['lam'+str(i)] + (1-lookback)*args['alpha']*lambs0_hat[i] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
+
+    loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])
+
+    # update model
+    grads = tf.gradients(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
+    # update args
+    args = args.copy()
+    for i in range(len(b_losses)+1):
+        args['lam'+str(i)] = lambs[i]
+        args['l'+str(i)] = losses[i]
+    return f_loss, b_losses, args
+
+
+@tf.function
+def gradnorm(model, optimizers, pde, x, y, args, aggregate_boundaries=False):
+    f_loss, b_losses = pde.calculate_loss(model[0], x, y, aggregate_boundaries, training=True)
 
     L_i = model[1]([f_loss]+b_losses)
     L_W = tf.reduce_sum(L_i)
@@ -81,4 +113,4 @@ def gradnorm(model, optimizers, pde, x, y, u, args, aggregate_boundaries=False):
 
     new_args = {'l'+str(i): l for i, l in enumerate([f_loss]+b_losses)}
     new_args.update({'alpha': args['alpha']})
-    return f_loss, b_losses, val_loss, new_args
+    return f_loss, b_losses, new_args

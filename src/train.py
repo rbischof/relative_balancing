@@ -50,14 +50,24 @@ def train(meta_args):
     elif meta_args.update_rule == 'lrannealing':
         update_rule = lrannealing
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
-        alpha = [tf.constant(0.)]+[tf.constant(.9)]*(meta_args.epochs+1)
+        alpha = [[tf.constant(1.) for _ in range(99)] + [tf.constant(meta_args.alpha)]]*((meta_args.epochs+1)//100)
+        alpha = [a for sub_alpha in alpha for a in sub_alpha]
         args.update({"alpha": tf.constant(alpha[0])})
-    elif meta_args.update_rule == 'relative':
-        update_rule = relative
+    elif meta_args.update_rule == 'softadapt':
+        update_rule = softadapt
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T)})
-        alpha = [tf.constant(1.), tf.constant(0.)]+[tf.constant(.999)]*(meta_args.epochs+1)
+        alpha = [tf.constant(meta_args.alpha)]*(meta_args.epochs+1)
+        args.update({"alpha": tf.constant(alpha[0])})
+    elif meta_args.update_rule == 'softadapt_rnd_lookback':
+        update_rule = softadapt_rnd_lookback
+        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args.update({"l0"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args.update({"T": tf.constant(meta_args.T)})
+        args.update({"rho": tf.constant(meta_args.rho)})
+        alpha = [tf.constant(meta_args.alpha)]*(meta_args.epochs+1)
         args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
@@ -70,6 +80,7 @@ def train(meta_args):
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
 
     experiment_path = create_directory(os.path.join('experiments', meta_args.path))
+    meta_args.path = experiment_path
 
     summary = []
     args_summary = []
@@ -86,31 +97,38 @@ def train(meta_args):
         best_model = model
         print("cloning model failed, saving best model separately is not possible")
 
-    start = time()
-    x, y, u = pde.generate_data()
+    x, y = pde.training_batch(meta_args.batch_size)
     print('start training of', meta_args.pde, 'in', experiment_path)
+    start = time()
     for epoch in range(meta_args.epochs):
         
-        f_loss, b_losses, val_loss, oargs = update_rule(model, 
+        f_loss, b_losses, oargs = update_rule(model, 
                             optimizer, 
                             pde, 
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
-                            tf.constant(u, dtype=tf.float32),
                             args,
                             meta_args.aggregate_boundaries)
-        loss = f_loss + tf.reduce_sum(b_losses)
+        loss = f_loss + tf.reduce_sum(b_losses)            
         
-        if epoch == 0:
+        if not meta_args.update_rule == 'gradnorm' or epoch == 0:
             args = oargs.copy()
+        if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'softadapt_rnd_lookback') and epoch == 0:
+            for i in range(num_b_losses+1):
+                args['l0'+str(i)] = ([f_loss]+b_losses)[i]
         if meta_args.resample:
-            x, y, u = pde.generate_data()
+            x, y = pde.training_batch(meta_args.batch_size)
         if len(alpha) > 1:
             args['alpha'] = alpha[1]
             alpha = alpha[1:]
                 
         if epoch % 1000 == 0:
-            
+            x, y, u = pde.validation_batch()
+            if isinstance(model, list):
+                val_loss = pde.validation_loss(model[0], x, y, u)
+            else:
+                val_loss = pde.validation_loss(model, x, y, u)
+
             loss, f_loss, val_loss = gpu_to_numpy(reduce_mean_all([loss, f_loss, val_loss]))
             b_losses  = gpu_to_numpy(b_losses)
 
@@ -144,7 +162,7 @@ def train(meta_args):
                         print(' reducing LR to', (optimizer[0].lr*meta_args.factor).numpy())
                     tf.keras.backend.set_value(optimizer[0].lr, optimizer[0].lr*meta_args.factor)
                     tf.keras.backend.set_value(optimizer[1].lr, optimizer[1].lr*meta_args.factor)
-            if meltdown > 5:
+            if meltdown > 4 or time()-start > 13500:
                 if meta_args.verbose:
                     print('early stopping')
                 break
@@ -156,11 +174,11 @@ def train(meta_args):
                       "loss {:<.3e}".format(best_loss), 
                       "val_loss {:<.3e}".format(val_loss),
                     "F {0:<.2e}".format(f_loss), 
-                    "B ", b_losses,
-                    "" if not isinstance(args, dict) else list(zip(args_keys, e_args)),
+                    "B", b_losses,
+                    "ARGS" if not isinstance(args, dict) else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start)))
 
-    append_to_results(strftime('%H:%M:%S', gmtime(time()-start)), meta_args, best_loss, best_val_loss)
+    append_to_results((time()-start)/epoch*1000, meta_args, best_loss, best_val_loss)
     # save results
     np.save(experiment_path+'/summary', summary)
     if args is not None:
@@ -169,6 +187,8 @@ def train(meta_args):
         best_model.save(experiment_path+'/model')
     else:
         model[0].save(experiment_path+'/model')
+
+    return best_val_loss
         
 
 parser = argparse.ArgumentParser()
@@ -187,10 +207,12 @@ parser.add_argument('--pde', default='helmholtz', type=str, help='type of pde to
 parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
 parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
 parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')
+parser.add_argument('--rho', default=1., type=float, help='rate for exponential decay')
 parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
 
 parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')
 parser.add_argument('--resample', action='store_true', help='resample datapoints or keep them fixed')
+parser.add_argument('--batch_size', default=1024, type=int, help='number of sampled points in a batch')
 parser.add_argument('--verbose', action='store_true', help='print progress to terminal')
 
 args = parser.parse_args()

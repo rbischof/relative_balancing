@@ -4,9 +4,7 @@ import tensorflow as tf
 TOL = 1e-5
 
 class Kirchhoff():
-    def __init__(self, batch_size=1024, batches_per_epoch=1000, E=30000, nue=.2, h=.2, a=10., b=10, p0=.015):
-        self.generator = KirchhoffDataGenerator(batch_size, batches_per_epoch, a, b, p0)
-        self.num_b_losses = 12
+    def __init__(self, E=30000, nue=.2, h=.2, a=10., b=10, p0=.015):
         self.E = E
         self.nue = nue
         self.h = h
@@ -14,9 +12,32 @@ class Kirchhoff():
         self.b = b
         self.p0 = p0
         self.D = (E * h**3)/(12*(1-nue**2))
+        self.num_b_losses = 12
 
-    def generate_data(self):
-        return self.generator.__getitem__(None)
+    def training_batch(self, batch_size=1024):
+        # sample internal area
+        train_internal = np.random.uniform([0,0], [self.a, self.b], size=(batch_size//2, 2))
+    
+        # sample boundaries
+        train_BC = [np.concatenate([tf.zeros((batch_size//8, 1)), 
+                                    self.a*tf.ones((batch_size//8, 1)), 
+                                    np.random.uniform(0, self.a, (batch_size//8, 1)), 
+                                    np.random.uniform(0, self.a, (batch_size//8, 1))], axis=0), 
+                    np.concatenate([np.random.uniform(0, self.b, (batch_size//8, 1)), 
+                                    np.random.uniform(0, self.b, (batch_size//8, 1)), 
+                                    tf.zeros((batch_size//8, 1)),
+                                    self.b*tf.ones((batch_size//8, 1))], axis=0)]
+                                
+        x = tf.cast(tf.concat([train_BC[0], train_internal[:,:1]], axis=0), dtype=tf.float32)
+        y = tf.cast(tf.concat([train_BC[1], train_internal[:,1:]], axis=0), dtype=tf.float32)
+    
+        return x, y
+
+    def validation_batch(self):
+        x, y = self.training_batch()
+        w = tf.cast(self.p0 / (np.pi**4 * self.D * ((1/self.a**2 + 1/self.b**2)**2)) * \
+            tf.math.sin(np.pi*x/self.a) * tf.math.sin(np.pi*y/self.b), dtype=tf.float32)
+        return x, y, w
 
     @tf.function
     def derivatives(self, model, x, y, training=False):
@@ -34,7 +55,7 @@ class Kirchhoff():
         return W, dW_dx, dW_dy, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy
 
     @tf.function
-    def calculate_loss(self, model, x, y, w, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model, x, y, aggregate_boundaries=False, training=False):
         W, dW_dx, dW_dy, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy = self.derivatives(model, x, y, training=training)
         
         # governing equation loss
@@ -47,13 +68,11 @@ class Kirchhoff():
         yl = tf.cast(y < TOL, dtype=tf.float32)
         yu = tf.cast(y > self.b - TOL, dtype=tf.float32)
 
-        val_loss = tf.reduce_mean((w - W)**2)
-
         if aggregate_boundaries:
             b_loss = tf.reduce_mean(((xl + xu + yl + yu)*W)**2 + \
                 ((xl + xu)*dW_dy)**2 + ((yl + yu)*dW_dx)**2 + \
                 ((xl + xu)*Mx)**2 + ((yl + yu)*My)**2)
-            return f_loss, [b_loss], val_loss
+            return f_loss, [b_loss]
         else:
             b1_loss  = tf.reduce_mean((xl*W)**2)
             b2_loss  = tf.reduce_mean((xu*W)**2)
@@ -68,40 +87,10 @@ class Kirchhoff():
             b11_loss = tf.reduce_mean((yl*My)**2)
             b12_loss = tf.reduce_mean((yu*My)**2)
             return f_loss, [b1_loss, b2_loss, b3_loss, b4_loss, b5_loss, b6_loss,
-                            b7_loss, b8_loss, b9_loss, b10_loss, b11_loss, b12_loss], val_loss
+                            b7_loss, b8_loss, b9_loss, b10_loss, b11_loss, b12_loss]
 
-class KirchhoffDataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, batch_size, batches_per_epoch=1000, a=10., b=10., p0=.015):
-        self.batch_size = batch_size
-        self.batches_per_epoch = batches_per_epoch
-        self.a = a
-        self.b = b
-        self.p0 = p0
+    @tf.function
+    def validation_loss(self, model, x, y, w):
+        w_pred = model(tf.concat([x, y], axis=-1), training=False)
+        return tf.reduce_mean((w - w_pred)**2)
 
-    def __len__(self):
-        return self.batches_per_epoch
-    
-    def __data_generation(self, list_IDs_temp):
-        # sample internal area
-        train_internal = np.random.uniform(low=[0,0], high=[self.a, self.b], size=(self.batch_size//2, 2))
-    
-        # sample boundries
-        train_BC = [np.concatenate([np.zeros((self.batch_size//8, 1)), 
-                                    self.a*np.ones((self.batch_size//8, 1)), 
-                                    np.random.uniform(0, self.a, (self.batch_size//8, 1)), 
-                                    np.random.uniform(0, self.a, (self.batch_size//8, 1))], axis=0), 
-                    np.concatenate([np.random.uniform(0, self.b, (self.batch_size//8, 1)), 
-                                    np.random.uniform(0, self.b, (self.batch_size//8, 1)), 
-                                    np.zeros((self.batch_size//8, 1)),
-                                    self.b*np.ones((self.batch_size//8, 1))], axis=0)]
-                                
-        x = tf.cast(tf.concat([train_BC[0], train_internal[:,:1]], axis=0), dtype=tf.float32)
-        y = tf.cast(tf.concat([train_BC[1], train_internal[:,1:]], axis=0), dtype=tf.float32)
-        w = self.p0 / (np.pi**4 * ((1/self.a**2 + 1/self.b**2)**2)) * \
-            tf.math.sin(np.pi*x/self.a) * tf.math.sin(np.pi*y*self.b)
-    
-        return x, y, w
-
-    def __getitem__(self, index):
-        'Generate one batch of data'
-        return self.__data_generation(None)

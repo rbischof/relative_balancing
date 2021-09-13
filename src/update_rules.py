@@ -9,8 +9,8 @@ def manual(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
 
     # update model
     grads = tf.gradients(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    return loss, b_losses, args
+    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    return grads, loss, b_losses, args
 
 
 @tf.function
@@ -32,14 +32,14 @@ def lrannealing(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=Fal
             tf.reduce_sum(tf.stack([lambs[j]*grad_bs[j][i] for j in range(len(grad_bs))], axis=0), axis=0))
 
     # update model
-    optimizer.apply_gradients(zip(scaled_grads, model.trainable_variables))
+    #optimizer.apply_gradients(zip(scaled_grads, model.trainable_variables))
     
     # update args
     args = args.copy()
     for i in range(len(b_losses)):
         args['lam'+str(i)] = lambs[i]
 
-    return f_loss, b_losses, args
+    return grads, f_loss, b_losses, args
 
 
 @tf.function
@@ -56,14 +56,14 @@ def softadapt(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False
 
     # update model
     grads = tf.gradients(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     # update args
     args = args.copy()
     for i in range(len(b_losses)+1):
         args['lam'+str(i)] = lambs[i]
         args['l'+str(i)] = losses[i]
-    return f_loss, b_losses, args
+    return grads, f_loss, b_losses, args
 
 
 @tf.function
@@ -81,14 +81,14 @@ def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_bou
 
     # update model
     grads = tf.gradients(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     # update args
     args = args.copy()
     for i in range(len(b_losses)+1):
         args['lam'+str(i)] = lambs[i]
         args['l'+str(i)] = losses[i]
-    return f_loss, b_losses, args
+    return grads, f_loss, b_losses, args
 
 
 @tf.function
@@ -106,10 +106,10 @@ def gradnorm(model, optimizers, pde, x, y, args, aggregate_boundaries=False):
 
     L_w = tf.reduce_sum(tf.math.abs(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0)), axis=0)
     grad_L_w = tf.gradients(L_w, model[1].trainable_variables)
-    optimizers[1].apply_gradients(zip(grad_L_w, model[1].trainable_variables))
+    #optimizers[1].apply_gradients(zip(grad_L_w, model[1].trainable_variables))
     grad_L_W = tf.gradients(L_W, model[0].trainable_variables)
-    optimizers[0].apply_gradients(zip(grad_L_W, model[0].trainable_variables))
+    #optimizers[0].apply_gradients(zip(grad_L_W, model[0].trainable_variables))
 
     new_args = {'l'+str(i): l for i, l in enumerate([f_loss]+b_losses)}
     new_args.update({'alpha': args['alpha']})
-    return f_loss, b_losses, new_args
+    return (grad_L_w, grad_L_W), f_loss, b_losses, new_args

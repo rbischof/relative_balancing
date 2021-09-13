@@ -1,11 +1,12 @@
+import os
 import numpy as np
 import tensorflow as tf
 
 import argparse
 from time import time, strftime, gmtime
 
-from models import *
-from update_rules import *
+from models import fully_connected, GradNormArgs
+from update_rules import manual, lrannealing, softadapt, softadapt_rnd_lookback, gradnorm
 from pdes.helmholtz import Helmholtz
 from pdes.burgers import Burgers
 from pdes.kirchhoff import Kirchhoff
@@ -58,7 +59,7 @@ def train(meta_args):
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
-        alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]*(meta_args.epochs+1)
+        alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]
         args.update({"alpha": tf.constant(alpha[0])})
     elif meta_args.update_rule == 'softadapt_rnd_lookback':
         update_rule = softadapt_rnd_lookback
@@ -68,8 +69,8 @@ def train(meta_args):
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
         rho = (np.random.uniform(size=meta_args.epochs+1) > meta_args.rho).astype(int).astype(np.float32)
         args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
-        alpha = [tf.constant(meta_args.alpha, tf.float32)]*(meta_args.epochs+1)
-        args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
+        alpha = [tf.constant(meta_args.alpha, tf.float32)]
+        args.update({"alpha": alpha[0]})
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
         args = {"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
@@ -81,7 +82,6 @@ def train(meta_args):
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
 
     experiment_path = create_directory(os.path.join('experiments', meta_args.path))
-    meta_args.path = experiment_path
 
     summary = []
     args_summary = []
@@ -103,13 +103,19 @@ def train(meta_args):
     start = time()
     for epoch in range(meta_args.epochs):
         
-        f_loss, b_losses, oargs = update_rule(model, 
+        grads, f_loss, b_losses, oargs = update_rule(model, 
                             optimizer, 
                             pde, 
                             tf.constant(x, dtype=tf.float32), 
                             tf.constant(y, dtype=tf.float32), 
                             args,
                             meta_args.aggregate_boundaries)
+        if isinstance(grads, tuple):
+            for i, g in enumerate(grads):
+                optimizer[i].apply_gradients(zip(g, model[i].trainable_variables))
+        else:
+            optimizer.apply_gradients(zip(grads, model.trainable_variables))
+
         loss = f_loss + tf.reduce_sum(b_losses)            
         
         if not meta_args.update_rule == 'gradnorm' or epoch == 0:
@@ -120,9 +126,9 @@ def train(meta_args):
         if meta_args.resample:
             x, y = pde.training_batch(meta_args.batch_size)
         if len(alpha) > 1:
-            args['alpha'] = alpha[1]
+            args['alpha'] = tf.constant(alpha[1], dtype=tf.float32)
             alpha = alpha[1:]
-            args['rnd'] = rho[1]
+            args['rho'] = tf.constant(rho[1], dtype=tf.float32)
             rho = rho[1:]
                 
         if epoch % 1000 == 0:

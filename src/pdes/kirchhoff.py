@@ -12,7 +12,7 @@ class Kirchhoff():
         self.b = b
         self.p0 = p0
         self.D = (E * h**3)/(12*(1-nue**2))
-        self.num_b_losses = 8
+        self.num_b_losses = 12
 
     def training_batch(self, batch_size=1024):
         # sample internal area
@@ -56,7 +56,7 @@ class Kirchhoff():
 
     @tf.function
     def calculate_loss(self, model, x, y, aggregate_boundaries=False, training=False):
-        W, dW_dx, dW_dy, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy = self.derivatives(model, x, y, training=training)
+        W, _, _, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy = self.derivatives(model, x, y, training=training)
         
         # governing equation loss
         F = dW_dxxxx + 2*dW_dxxyy + dW_dyyyy
@@ -70,24 +70,19 @@ class Kirchhoff():
 
         if aggregate_boundaries:
             b_loss = tf.reduce_mean(((xl + xu + yl + yu)*W)**2 + \
-                #((xl + xu)*dW_dy)**2 + ((yl + yu)*dW_dx)**2 + \
                 ((xl + xu)*Mx)**2 + ((yl + yu)*My)**2)
             return f_loss, [b_loss]
         else:
-            b1_loss  = tf.reduce_mean((xl*W)**2)
-            b2_loss  = tf.reduce_mean((xu*W)**2)
-            b3_loss  = tf.reduce_mean((yl*W)**2)
-            b4_loss  = tf.reduce_mean((yu*W)**2)
-            #b5_loss  = tf.reduce_mean((xl*dW_dy)**2)
-            #b6_loss  = tf.reduce_mean((xu*dW_dy)**2)
-            #b7_loss  = tf.reduce_mean((yl*dW_dx)**2)
-            #b8_loss  = tf.reduce_mean((yu*dW_dx)**2)
-            b9_loss  = tf.reduce_mean((xl*Mx)**2)
-            b10_loss = tf.reduce_mean((xu*Mx)**2)
-            b11_loss = tf.reduce_mean((yl*My)**2)
-            b12_loss = tf.reduce_mean((yu*My)**2)
-            return f_loss, [b1_loss, b2_loss, b3_loss, b4_loss,
-                            b9_loss, b10_loss, b11_loss, b12_loss]
+            b1_loss = tf.reduce_mean((xl*W)**2)
+            b2_loss = tf.reduce_mean((xu*W)**2)
+            b3_loss = tf.reduce_mean((yl*W)**2)
+            b4_loss = tf.reduce_mean((yu*W)**2)
+            b5_loss = tf.reduce_mean((xl*Mx)**2)
+            b6_loss = tf.reduce_mean((xu*Mx)**2)
+            b7_loss = tf.reduce_mean((yl*My)**2)
+            b8_loss = tf.reduce_mean((yu*My)**2)
+            return f_loss, [b1_loss, b2_loss, b3_loss, b4_loss, 
+                            b5_loss, b6_loss, b7_loss, b8_loss]
 
     @tf.function
     def validation_loss(self, model, x, y, w):

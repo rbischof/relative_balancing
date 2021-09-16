@@ -67,7 +67,7 @@ def train(meta_args):
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"l0"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
-        rho = (np.random.uniform(size=meta_args.epochs+1) > meta_args.rho).astype(int).astype(np.float32)
+        rho = (np.random.uniform(size=meta_args.epochs+1) < meta_args.rho).astype(int).astype(np.float32)
         args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
         alpha = [tf.constant(meta_args.alpha, tf.float32)]
         args.update({"alpha": alpha[0]})

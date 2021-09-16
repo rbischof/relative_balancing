@@ -34,7 +34,7 @@ def training_wrapper(meta_args):
         return -loss
 
     xgbBO = BayesianOptimization(inner_training_wrapper, param_ranges)
-    xgbBO.maximize(n_iter=80, init_points=15, acq='ei')
+    xgbBO.maximize(n_iter=80, init_points=20, acq='ei')
     print('BEST PARAMS', xgbBO.max['params'])
 
 
@@ -48,7 +48,7 @@ parser.add_argument('--patience', default=3, type=int, help='how many evaluation
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
 parser.add_argument('--pde', default='helmholtz', type=str, help='type of pde to fit')
-parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
+parser.add_argument('--update_rule', default='softadapt_rnd_lookback', type=str, help='type of balancing')
 parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
 
 parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')

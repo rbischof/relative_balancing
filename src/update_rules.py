@@ -2,37 +2,30 @@ import tensorflow as tf
 import numpy as np
 
 @tf.function
-def manual(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
+def manual(model, task, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = task.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     loss = args['lam'+str(0)]*f_loss + tf.reduce_sum([args['lam'+str(i+1)]*b_losses[i] for i in range(len(b_losses))])
 
-    # update model
-    grads = tf.gradients(loss, model.trainable_variables)
-    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    grads = [tf.gradients(loss, m, unconnected_gradients='zero') if 'backward_var' in m.name else tf.gradients(loss, m.trainable_variables, unconnected_gradients='zero') for m in model]
     return grads, loss, b_losses, args
 
 
 @tf.function
-def lrannealing(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
+def lrannealing(model, task, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = task.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
-    grad_f  = tf.gradients(f_loss,  model.trainable_variables, unconnected_gradients='zero')
-    grad_bs = [tf.gradients(b_losses[i], model.trainable_variables, unconnected_gradients='zero') for i in range(len(b_losses))]
+    grad_f  = tf.gradients(f_loss,  model[0].trainable_variables, unconnected_gradients='zero')
+    grad_bs = [tf.gradients(b_losses[i], model[0].trainable_variables, unconnected_gradients='zero') for i in range(len(b_losses))]
 
     # LR annealing
     mean_grad_f = tf.reduce_mean(tf.abs(tf.concat([tf.reshape(g, (-1,)) for g in grad_f], axis=-1)))
     lambs_hat = [mean_grad_f / (tf.reduce_mean(tf.abs(tf.concat([tf.reshape(g, (-1,)) for g in grad_bs[i]], axis=-1)))+1e-8) for i in range(len(b_losses))] # add small epsilon to prevent division by 0
 
     lambs = [args['alpha']*args['lam'+str(i)] + (1-args['alpha'])*lambs_hat[i] for i in range(len(b_losses))]
-             
-    scaled_grads = []
-    for i in range(len(grad_f)):
-        scaled_grads.append(grad_f[i] + \
-            tf.reduce_sum(tf.stack([lambs[j]*grad_bs[j][i] for j in range(len(grad_bs))], axis=0), axis=0))
-
-    # update model
-    #optimizer.apply_gradients(zip(scaled_grads, model.trainable_variables))
+    
+    loss = f_loss + tf.reduce_sum([tf.stop_gradient(lambs[i])*b_losses[i] for i in range(len(b_losses))])
+    grads = [tf.gradients(loss, m, unconnected_gradients='zero') if 'backward_var' in m.name else tf.gradients(loss, m.trainable_variables, unconnected_gradients='zero') for m in model]
     
     # update args
     args = args.copy()
@@ -43,8 +36,8 @@ def lrannealing(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=Fal
 
 
 @tf.function
-def softadapt(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
+def softadapt(model, task, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = task.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     T = args['T']
     losses = [f_loss] + b_losses
@@ -53,10 +46,7 @@ def softadapt(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False
     lambs = [args['alpha']*args['lam'+str(i)] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
 
     loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])
-
-    # update model
-    grads = tf.gradients(loss, model.trainable_variables)
-    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    grads = [tf.gradients(loss, m, unconnected_gradients='zero') if 'backward_var' in m.name else tf.gradients(loss, m.trainable_variables, unconnected_gradients='zero') for m in model]
 
     # update args
     args = args.copy()
@@ -67,8 +57,8 @@ def softadapt(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False
 
 
 @tf.function
-def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_boundaries=False):
-    f_loss, b_losses = pde.calculate_loss(model, x, y, aggregate_boundaries, training=True)
+def relobalo(model, task, x, y, args:dict, aggregate_boundaries=False):
+    f_loss, b_losses = task.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
     T = args['T']
     losses = [f_loss] + b_losses
@@ -78,10 +68,7 @@ def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_bou
     lambs = [args['rho']*args['alpha']*args['lam'+str(i)] + (1-args['rho'])*args['alpha']*lambs0_hat[i] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
 
     loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])
-
-    # update model
-    grads = tf.gradients(loss, model.trainable_variables)
-    #optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    grads = [tf.gradients(loss, m, unconnected_gradients='zero') if 'backward_var' in m.name else tf.gradients(loss, m.trainable_variables, unconnected_gradients='zero') for m in model]
 
     # update args
     args = args.copy()
@@ -92,10 +79,10 @@ def softadapt_rnd_lookback(model, optimizer, pde, x, y, args:dict, aggregate_bou
 
 
 @tf.function
-def gradnorm(model, optimizers, pde, x, y, args, aggregate_boundaries=False):
-    f_loss, b_losses = pde.calculate_loss(model[0], x, y, aggregate_boundaries, training=True)
+def gradnorm(model, task, x, y, args, aggregate_boundaries=False):
+    f_loss, b_losses = task.calculate_loss(model, x, y, aggregate_boundaries, training=True)
 
-    L_i = model[1]([f_loss]+b_losses)
+    L_i = model[-1]([f_loss]+b_losses)
     L_W = tf.reduce_sum(L_i)
 
     GiW = [tf.norm(tf.gradients(L_i[i], model[0].trainable_variables[-2])[0]) for i in range(len(b_losses)+1)]
@@ -105,11 +92,9 @@ def gradnorm(model, optimizers, pde, x, y, args, aggregate_boundaries=False):
     Ri = [li / li_tilde_average for li in li_tilde]
 
     L_w = tf.reduce_sum(tf.math.abs(tf.stack([tf.norm(giw - tf.stop_gradient(GiW_average*ri**args['alpha'])) for giw, ri in zip(GiW, Ri)], axis=0)), axis=0)
-    grad_L_w = tf.gradients(L_w, model[1].trainable_variables)
-    #optimizers[1].apply_gradients(zip(grad_L_w, model[1].trainable_variables))
-    grad_L_W = tf.gradients(L_W, model[0].trainable_variables)
-    #optimizers[0].apply_gradients(zip(grad_L_W, model[0].trainable_variables))
+    loss = L_w + L_W
+    grads = [tf.gradients(loss, m, unconnected_gradients='zero') if 'backward_var' in m.name else tf.gradients(loss, m.trainable_variables, unconnected_gradients='zero') for m in model]
 
     new_args = {'l'+str(i): l for i, l in enumerate([f_loss]+b_losses)}
     new_args.update({'alpha': args['alpha']})
-    return (grad_L_w, grad_L_W), f_loss, b_losses, new_args
+    return grads, f_loss, b_losses, new_args

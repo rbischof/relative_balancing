@@ -5,25 +5,21 @@ from train import train
 from bayes_opt import BayesianOptimization
 
 param_ranges = {
-    'layers': (1, 6),
-    'nodes': (16, 512),
     'lr_0': (1, 10),
     'lr_1': (-6, -3),
     'T_0': (1, 10),
     'T_1': (-3, 2),
-    'alpha': (0.9, 0.9999999),
-    'rho': (0, 1)
+    'alpha': (0., 1.),
+    'rho': (0., 1.)
 }
 
 def training_wrapper(meta_args):
-    def inner_training_wrapper(layers, nodes, lr_0, lr_1, T_0, T_1, alpha, rho) -> float:
-        layers = int(layers)
-        nodes = int(nodes)
+    def inner_training_wrapper(lr_0, lr_1, T_0, T_1, alpha, rho) -> float:
         lr = lr_0 * 10**int(lr_1)
         T = T_0 * 10**int(T_1)
-
-        setattr(meta_args, 'layers', layers)
-        setattr(meta_args, 'nodes', nodes)
+        print('arguments LR', lr, 'T', T, 'alpha', alpha, 'rho', rho)
+        setattr(meta_args, 'layers', 3)
+        setattr(meta_args, 'nodes', 256)
         setattr(meta_args, 'lr', lr)
         setattr(meta_args, 'T', T)
         setattr(meta_args, 'alpha', alpha)
@@ -34,7 +30,7 @@ def training_wrapper(meta_args):
         return -loss
 
     xgbBO = BayesianOptimization(inner_training_wrapper, param_ranges)
-    xgbBO.maximize(n_iter=80, init_points=20, acq='ei')
+    xgbBO.maximize(n_iter=80, init_points=15, acq='ei')
     print('BEST PARAMS', xgbBO.max['params'])
 
 
@@ -47,8 +43,8 @@ parser.add_argument('--optimizer', default='adam', type=str, help='type of optim
 parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
-parser.add_argument('--pde', default='helmholtz', type=str, help='type of pde to fit')
-parser.add_argument('--update_rule', default='softadapt_rnd_lookback', type=str, help='type of balancing')
+parser.add_argument('--task', default='helmholtz', type=str, help='type of task to fit')
+parser.add_argument('--update_rule', default='relobalo', type=str, help='type of balancing')
 parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
 
 parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')

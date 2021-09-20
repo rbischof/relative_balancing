@@ -1,4 +1,5 @@
 src/experiments
+src/data
 */__pycache__
 *.sh
 *.csv

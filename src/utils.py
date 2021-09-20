@@ -1,5 +1,7 @@
 import os
+import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from csv import writer
 from time import time, strftime, gmtime
@@ -46,3 +48,11 @@ def append_to_results(ex_time:str, meta_args, train_error:float, val_error:float
         # Add contents of list as last row in the csv file
         csv_writer.writerow([strftime('%d.%m. %H:%M:%S', gmtime(time())), ex_time]+args+[train_error, val_error])
 
+def show_image(img:np.array, path:str=None, extent:list=[0, 1, 0, 1]):
+    _, ax = plt.subplots(1,1,figsize=(6,4.5),dpi=100)
+    ims = plt.imshow(img, cmap='plasma', extent=extent)
+    ax.figure.colorbar(ims, ax=ax, format='%.1e')
+    plt.tight_layout(pad=0)
+    if path is not None:
+        plt.savefig(path)
+    plt.show()

@@ -7,20 +7,18 @@ from utils import show_image
 TOL = 1e-5
 
 class Kirchhoff():
-    def __init__(self, E=30000, nue=.2, h=.2, a=10., b=10, p0=.015, backward:bool=False):
-        self.E = E
-        self.nue = nue
-        self.h = h
-        self.a = a
-        self.b = b
-        self.p0 = p0
-        self.D = (E * h**3)/(12*(1-nue**2))
-        self.backward = backward
-        self.num_b_losses = 8 if not backward else 1
+    def __init__(self, inverse_var:float, inverse:bool):
+        self.a = 10
+        self.b = 10
+        self.nue = .2
+        self.p0 = 0.015
+        self.inverse = inverse
+        self.num_b_losses = 8 if not inverse else 1
+        self.D = inverse_var if inverse_var is not None else 20.8333333333
 
     def training_batch(self, batch_size=1024):
         # sample internal area
-        train_internal = np.random.uniform([0,0], [self.a, self.b], size=(batch_size//2, 2))
+        train_internal = np.random.uniform([0, 0], [self.a, self.b], size=(batch_size//2, 2))
     
         # sample boundaries
         train_BC = [np.concatenate([tf.zeros((batch_size//8, 1)), 
@@ -38,7 +36,9 @@ class Kirchhoff():
         return x, y
 
     def validation_batch(self):
-        x, y = self.training_batch()
+        x, y = np.mgrid[0:self.a:complex(0, 32), 0:self.b:complex(0, 32)]
+        x, y = tf.cast(x.reshape(1024, 1), dtype=tf.float32), \
+                        tf.cast(y.reshape(1024, 1), dtype=tf.float32)
         w = tf.cast(self.p0 / (np.pi**4 * self.D * ((1/self.a**2 + 1/self.b**2)**2)) * \
             tf.math.sin(np.pi*x/self.a) * tf.math.sin(np.pi*y/self.b), dtype=tf.float32)
         return x, y, w
@@ -64,13 +64,13 @@ class Kirchhoff():
         
         # governing equation loss
         F = dW_dxxxx + 2*dW_dxxyy + dW_dyyyy
-        if self.backward:
+        if self.inverse:
             f_loss = tf.reduce_mean(((self.p0 / model[1]) * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - F)**2)
             w_loss = tf.reduce_mean(((self.p0 / (model[1] * np.pi**4 * (1/self.a**2 + 1/self.b**2)**2)) * \
                 tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - W)**2)
             return f_loss, [w_loss]
         else:
-            f_loss = tf.reduce_mean(((self.p0 / self.D) * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - F)**2)
+            f_loss = tf.reduce_mean((self.p0 * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - F*self.D)**2)
 
             # boundary conditions loss
             xl = tf.cast(x < TOL, dtype=tf.float32)
@@ -98,7 +98,7 @@ class Kirchhoff():
     @tf.function
     def validation_loss(self, model, x, y, w):
         w_pred = model[0](tf.concat([x, y], axis=-1), training=False)
-        if not self.backward:
+        if not self.inverse:
             return tf.reduce_mean((w - w_pred)**2)
         else:
             return tf.reduce_mean((w - w_pred)**2), tf.reduce_mean((model[1] - self.D)**2)
@@ -106,8 +106,10 @@ class Kirchhoff():
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, y, w = self.validation_batch()
-        w_pred, _ = model[0].predict(tf.concat([x, y], axis=-1))
-
-        show_image(w_pred.reshape(self.width, self.height), os.path.join(path, 'w_predicted'), extent=[-1, 1, 0, 1])
-        show_image(w[0].numpy().reshape(self.width, self.height), os.path.join(path, 'w_real'), extent=[-1, 1, 0, 1])
-        show_image((w[0].numpy().reshape(self.width, self.height) - w_pred[0].reshape(self.width, self.height))**2, os.path.join(path, 'w_squared_error'), extent=[-1, 1, 0, 1])
+        W, _, _, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy = self.derivatives(model, x, y, training=False)
+        
+        show_image(W.numpy().reshape(32, 32), os.path.join(path, 'w_predicted'), extent=[0, 1, 0, 1])
+        show_image(w.numpy().reshape(32, 32), os.path.join(path, 'w_real'), extent=[0, 1, 0, 1])
+        show_image(((self.p0 / self.D) * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b)).numpy().reshape(32, 32), os.path.join(path, 'f_predicted'), extent=[0, 1, 0, 1])
+        show_image((dW_dxxxx + dW_dyyyy + 2*dW_dxxyy).numpy().reshape(32, 32), os.path.join(path, 'f_real'), extent=[0, 1, 0, 1])
+        show_image((w.numpy().reshape(32, 32) - W.numpy().reshape(32, 32))**2, os.path.join(path, 'w_squared_error'), extent=[0, 1, 0, 1])

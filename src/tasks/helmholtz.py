@@ -7,10 +7,10 @@ from utils import show_image
 TOL = 1e-5
 
 class Helmholtz():
-    def __init__(self, k:float=1, backward:bool=False):
-        self.k = k
-        self.backward = backward
-        self.num_b_losses = 4 if not backward else 1
+    def __init__(self, inverse_var:float, inverse:bool):
+        self.inverse = inverse
+        self.num_b_losses = 4 if not inverse else 1
+        self.k = inverse_var if inverse_var is not None else 1
 
     def training_batch(self, batch_size=1024):
         x_in = tf.random.uniform((2*batch_size//3, 1), minval=-1, maxval=1, dtype=tf.float32)
@@ -30,7 +30,9 @@ class Helmholtz():
         return x, y
 
     def validation_batch(self):
-        x, y = self.training_batch()
+        x, y = np.mgrid[-1:1:complex(0, 32), -1:1:complex(0, 32)]
+        x, y = tf.cast(x.reshape(1024, 1), dtype=tf.float32), \
+                        tf.cast(y.reshape(1024, 1), dtype=tf.float32)
         u = tf.cast(tf.math.sin(np.pi*x)*tf.math.sin(4*np.pi*y), dtype=tf.float32)
         return x, y, u
 
@@ -43,12 +45,12 @@ class Helmholtz():
         f_pred = du_dxx + du_dyy + self.k*u_pred
 
         sin_xy = tf.math.sin(np.pi*x)*tf.math.sin(4*np.pi*y)
-        if self.backward:
-            f_loss = tf.reduce_mean((np.pi**2*sin_xy - (4*np.pi)**2*sin_xy + model[1]*sin_xy - f_pred)**2)
-            u_loss = tf.reduce_mean((tf.math.sin(np.pi*x)*tf.math.sin(4*np.pi*y) - u_pred)**2)
+        if self.inverse:
+            f_loss = tf.reduce_mean(((-np.pi**2 - (4*np.pi)**2 + model[1]**2) * sin_xy - f_pred)**2)
+            u_loss = tf.reduce_mean((sin_xy - u_pred)**2)
             return f_loss, [u_loss]
         else:
-            f_loss = tf.reduce_mean((f_pred + np.pi**2*sin_xy + (4*np.pi)**2*sin_xy - sin_xy)**2)
+            f_loss = tf.reduce_mean((f_pred - (-np.pi**2 - (4*np.pi)**2 + self.k**2) * sin_xy)**2)
 
             # boundary conditions loss
             xl = tf.cast(x < (-1 + TOL), dtype=tf.float32)
@@ -69,7 +71,7 @@ class Helmholtz():
     @tf.function
     def validation_loss(self, model, x, y, u):
         u_pred = model[0](tf.concat([x, y], axis=-1), training=False)
-        if not self.backward:
+        if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)
         else:
             return tf.reduce_mean((u - u_pred)**2), tf.reduce_mean((model[1] - self.k)**2)
@@ -77,8 +79,8 @@ class Helmholtz():
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, y, u = self.validation_batch()
-        u_pred, _ = model[0].predict(tf.concat([x, y], axis=-1))
+        u_pred = model[0].predict(tf.concat([x, y], axis=-1))
 
-        show_image(u_pred.reshape(self.width, self.height), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1])
-        show_image(u[0].numpy().reshape(self.width, self.height), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1])
-        show_image((u[0].numpy().reshape(self.width, self.height) - u_pred[0].reshape(self.width, self.height))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, 0, 1])
+        show_image(u_pred.reshape(32, 32), os.path.join(path, 'u_predicted'), extent=[-1, 1, -1, 1])
+        show_image(u.numpy().reshape(32, 32), os.path.join(path, 'u_real'), extent=[-1, 1, -1, 1])
+        show_image((u.numpy().reshape(32, 32) - u_pred.reshape(32, 32))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, -1, 1])

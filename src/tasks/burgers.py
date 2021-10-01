@@ -8,16 +8,17 @@ from utils import show_image
 TOL = 1e-5
 
 class Burgers():
-    def __init__(self, backward:bool=False):
-        self.backward = backward
-        self.num_b_losses = 3 if not backward else 1
+    def __init__(self, inverse_var:float, inverse:bool):
+        self.inverse = inverse
+        self.nue = inverse_var if inverse_var is not None else 0.01/np.pi
+        self.num_b_losses = 3 if not inverse else 1
         data = scipy.io.loadmat('data/burgers_shock_mu_01_pi.mat')  	          # Load data from file
         self.x = data['x']                                                        # 256 points between -1 and 1 [256x1]
         self.t = data['t']                                                        # 100 time points between 0 and 1 [100x1] 
         self.u = tf.cast(np.rot90(data['usol'], k=1)[::-1], dtype=tf.float32)     # solution of 256x100 grid points
 
     def training_batch(self, batch_size=1024):
-        if not self.backward:
+        if not self.inverse:
             x_in = tf.random.uniform((2*batch_size//3, 1), minval=-1, maxval=1, dtype=tf.float32)
             x_b1 = tf.random.uniform((batch_size//9, 1), minval=-1, maxval=(-1+TOL), dtype=tf.float32)
             x_b2 = tf.random.uniform((batch_size//9, 1), minval=(1-TOL), maxval=1, dtype=tf.float32)
@@ -43,20 +44,20 @@ class Burgers():
 
     @tf.function
     def calculate_loss(self, model, x, t, aggregate_boundaries=False, training=False):
-        if self.backward:
+        if self.inverse:
             x, t, u = self.validation_batch()
         # predictions and derivatives
         u_pred = model[0](tf.concat([x, t], axis=-1), training=training)
         du_dx, du_dt = tf.gradients(u_pred, [x, t])
         du_dxx = tf.gradients(du_dx, x)[0]
 
-        if self.backward:
+        if self.inverse:
             f_loss = tf.reduce_mean((du_dt + u_pred*du_dx - model[1]*du_dxx)**2)
             u_loss = tf.reduce_mean((u_pred - u)**2)
             return f_loss, [u_loss]
         else:
             # governing equation loss
-            f_loss = tf.reduce_mean((du_dt + u_pred*du_dx - (0.01/np.pi)*du_dxx)**2)
+            f_loss = tf.reduce_mean((du_dt + u_pred*du_dx - self.nue*du_dxx)**2)
 
             # boundary conditions loss
             xl = tf.cast(x < (-1 + TOL), dtype=tf.float32)
@@ -75,15 +76,15 @@ class Burgers():
     @tf.function
     def validation_loss(self, model, x, t, u):
         u_pred = model[0](tf.concat([x, t], axis=-1), training=False)
-        if not self.backward:
+        if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)
         else:
-            return tf.reduce_mean((u - u_pred)**2), tf.reduce_mean((model[1] - 0.01/np.pi)**2)
+            return tf.reduce_mean((u - u_pred)**2), tf.reduce_mean((model[1] - self.nue)**2)
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, t, u = self.validation_batch()
-        u_pred, _ = model[0].predict([np.array([[0.01/np.pi]]), x[:1], t[:1]])
+        u_pred = model[0].predict(tf.concat([x, t], axis=-1))
 
-        show_image(u_pred.reshape(self.width, self.height), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1])
-        show_image(u[0].numpy().reshape(self.width, self.height), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1])
-        show_image((u[0].numpy().reshape(self.width, self.height) - u_pred[0].reshape(self.width, self.height))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, 0, 1])
+        show_image(u_pred.reshape(32, 32), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1])
+        show_image(u.numpy().reshape(32, 32), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1])
+        show_image((u.numpy().reshape(32, 32) - u_pred.reshape(32, 32))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, 0, 1])

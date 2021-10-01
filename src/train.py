@@ -20,12 +20,12 @@ def train(meta_args):
     # initialize network
     if meta_args.task == 'mnist':
         model = [autoencoder()]
-        if meta_args.backward:
-            model += [tf.Variable(1., trainable=True, name='backward_var')]
+        if meta_args.inverse:
+            model += [tf.Variable(1., trainable=True, name='inverse_var')]
     elif meta_args.network == 'fc':   
         model = [fully_connected(meta_args.layers, meta_args.nodes)]
-        if meta_args.backward:
-            model += [tf.Variable(1., trainable=True, name='backward_var')]
+        if meta_args.inverse:
+            model += [tf.Variable(1., trainable=True, name='inverse_var')]
     else:
         raise ValueError('Network type not understood:' + meta_args.network)
 
@@ -37,18 +37,18 @@ def train(meta_args):
     else:
         raise ValueError('Optimizer type not understood:' + meta_args.optimizer)
 
-    if meta_args.backward:
+    if meta_args.inverse:
         optimizer += [optimizer[0]]
 
     # initialize task
     if meta_args.task == 'helmholtz':
-        task = Helmholtz(backward=meta_args.backward)
+        task = Helmholtz(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     elif meta_args.task == 'burgers':
-        task = Burgers(backward=meta_args.backward)
+        task = Burgers(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     elif meta_args.task == 'kirchhoff':
-        task = Kirchhoff(backward=meta_args.backward)
+        task = Kirchhoff(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     elif meta_args.task == 'mnist':
-        task = MNIST(backward=meta_args.backward)
+        task = MNIST(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     else:
         raise ValueError('Task type not understood:' + meta_args.task)
 
@@ -129,7 +129,7 @@ def train(meta_args):
         )
 
         for i, g in enumerate(grads):
-            if 'backward_var' in model[i].name:
+            if 'inverse_var' in model[i].name:
                 optimizer[i].apply_gradients(zip(g, [model[i]]))
             else:
                 optimizer[i].apply_gradients(zip(g, model[i].trainable_variables))
@@ -152,9 +152,9 @@ def train(meta_args):
                 
         if epoch % 1000 == 0:
             x, y, u = task.validation_batch()
-            if meta_args.backward:
-                val_loss, var_loss = task.validation_loss(model, x, y, u)
-                summary.append([loss, val_loss, var_loss, f_loss]+b_losses)
+            if meta_args.inverse:
+                val_loss0, val_loss = task.validation_loss(model, x, y, u)
+                summary.append([loss, val_loss0, val_loss, f_loss]+b_losses)
             else:
                 val_loss = task.validation_loss(model, x, y, u)
                 summary.append([loss, val_loss, f_loss]+b_losses)
@@ -185,7 +185,7 @@ def train(meta_args):
                 for o in optimizer:
                     tf.keras.backend.set_value(o.lr, o.lr*meta_args.factor)
                 model[0].set_weights(best_model.get_weights())
-            if meltdown > 4 or time()-start > 13500:
+            if meltdown > 4 or time()-start > 3.75*3600:
                 model[0] = best_model
                 if meta_args.verbose:
                     print('early stopping')
@@ -205,18 +205,19 @@ def train(meta_args):
                 )
 
     # save results
+    unique_path = create_directory(os.path.join('experiments', meta_args.path))
+    meta_args.path = unique_path
     append_to_results((time()-start)/epoch*1000, meta_args, best_loss, best_val_loss)
-    experiment_path = create_directory(os.path.join('experiments', meta_args.path))
-    np.save(experiment_path+'/summary', summary)
+    np.save(os.path.join(unique_path, 'summary'), summary)
     if args is not None:
-        np.save(experiment_path+'/args_summary', args_summary)
-    model[0].save(experiment_path+'/model_'+str(i))
-
+        np.save(os.path.join(unique_path, 'args_summary'), args_summary)
+    model[0].save(os.path.join(unique_path, 'model_'+str(i)))
+    task.visualise(model, unique_path)
     return best_val_loss
         
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', default='experiments/', type=str, help='path where to store the results')
+parser.add_argument('--path', default='experiments', type=str, help='path where to store the results')
 
 parser.add_argument('--layers', default=1, type=int, help='number of layers')
 parser.add_argument('--nodes', default=32, type=int, help='number of nodes')
@@ -228,7 +229,8 @@ parser.add_argument('--patience', default=3, type=int, help='how many evaluation
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
 parser.add_argument('--task', default='helmholtz', type=str, help='type of task to fit')
-parser.add_argument('--backward', action='store_true', help='solve backward problem')
+parser.add_argument('--inverse', action='store_true', help='solve inverse problem')
+parser.add_argument('--inverse_var', default=None, type=float, help='target inverse variable')
 parser.add_argument('--update_rule', default='manual', type=str, help='type of balancing')
 parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
 parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')

@@ -7,12 +7,12 @@ from utils import show_image
 TOL = 1e-5
 
 class MNIST():
-    def __init__(self, a:float=10, backward:bool=False):
-        self.a = a
-        self.backward = backward
-        self.num_b_losses = 2 if not backward else 1
-        self.x_train = np.load('data/x_train.npy')
-        self.x_test = np.load('data/x_test.npy')
+    def __init__(self, inverse_var:float, inverse:bool):
+        self.inverse = inverse
+        self.num_b_losses = 2 if not inverse else 1
+        self.x_train = np.load('data/x_train.npy') / 255.
+        self.x_test = np.load('data/x_test.npy') / 255.
+        self.a = inverse_var if inverse_var is not None else 10
 
     def training_batch(self, batch_size=1024):
         ix = np.random.randint(0, len(self.x_train), batch_size)
@@ -28,7 +28,7 @@ class MNIST():
         dpdx, dpdy = tf.image.image_gradients(p)
         dxdx, dxdy = tf.image.image_gradients(x)
         
-        if self.backward:
+        if self.inverse:
             f_loss = tf.reduce_mean((p - x)**2)
             b_loss = [tf.reduce_mean((model[1]*dpdx - self.a*dxdx)**2) + tf.reduce_mean((model[1]*dpdy - self.a*dxdy)**2)]
             return f_loss, b_loss
@@ -45,10 +45,12 @@ class MNIST():
     @tf.function
     def validation_loss(self, model, x, y, w):
         p = model[0](x, training=False)
-        if not self.backward:
-            return tf.reduce_mean((p - x)**2)
+        dpdx, dpdy = tf.image.image_gradients(p)
+        dxdx, dxdy = tf.image.image_gradients(x)
+        if not self.inverse:
+            return tf.reduce_mean((p - x)**2) + tf.reduce_mean((dpdx - dxdx)**2) + tf.reduce_mean((dpdy - dxdy)**2)
         else:
-            return tf.reduce_mean((p - x)**2), tf.reduce_mean((model[1] - self.a)**2)
+            return tf.reduce_mean((p - x)**2) + tf.reduce_mean((dpdx - dxdx)**2) + tf.reduce_mean((dpdy - dxdy)**2), tf.reduce_mean((model[1] - self.a)**2)
 
 
     def visualise(self, model:tf.keras.Model, path:str=None):

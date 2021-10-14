@@ -42,12 +42,12 @@ class Helmholtz():
         du_dx, du_dy = tf.gradients(u_pred, [x, y])
         du_dxx = tf.gradients(du_dx, x)[0]
         du_dyy = tf.gradients(du_dy, y)[0]
-        f_pred = du_dxx + du_dyy + self.k*u_pred
+        f_pred = du_dxx + du_dyy + self.k**2*u_pred
 
         sin_xy = tf.math.sin(np.pi*x)*tf.math.sin(4*np.pi*y)
         if self.inverse:
             f_loss = tf.reduce_mean(((-np.pi**2 - (4*np.pi)**2 + model[1]**2) * sin_xy - f_pred)**2)
-            u_loss = tf.reduce_mean((sin_xy - u_pred)**2)
+            u_loss = tf.reduce_mean((self.k**2*sin_xy - model[1]**2*u_pred)**2)
             return f_loss, [u_loss]
         else:
             f_loss = tf.reduce_mean((f_pred - (-np.pi**2 - (4*np.pi)**2 + self.k**2) * sin_xy)**2)
@@ -83,4 +83,4 @@ class Helmholtz():
 
         show_image(u_pred.reshape(32, 32), os.path.join(path, 'u_predicted'), extent=[-1, 1, -1, 1])
         show_image(u.numpy().reshape(32, 32), os.path.join(path, 'u_real'), extent=[-1, 1, -1, 1])
-        show_image((u.numpy().reshape(32, 32) - u_pred.reshape(32, 32))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, -1, 1])
+        show_image((u.numpy().reshape(32, 32) - u_pred.reshape(32, 32))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, -1, 1], format='%.1e')

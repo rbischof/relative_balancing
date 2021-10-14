@@ -15,7 +15,7 @@ class Burgers():
         data = scipy.io.loadmat('data/burgers_shock_mu_01_pi.mat')  	          # Load data from file
         self.x = data['x']                                                        # 256 points between -1 and 1 [256x1]
         self.t = data['t']                                                        # 100 time points between 0 and 1 [100x1] 
-        self.u = tf.cast(np.rot90(data['usol'], k=1)[::-1], dtype=tf.float32)     # solution of 256x100 grid points
+        self.u = tf.cast(data['usol'], dtype=tf.float32)     # solution of 256x100 grid points
 
     def training_batch(self, batch_size=1024):
         if not self.inverse:
@@ -31,15 +31,15 @@ class Burgers():
             t_b3 = tf.random.uniform((batch_size//9, 1), minval=0, maxval=TOL, dtype=tf.float32)
             t = tf.concat([t_in, t_b1, t_b2, t_b3], axis=0)
         else:
-            ixx, ixt = np.random.randint(0, 256, batch_size), np.random.randint(0, 100, batch_size)
+            ixx, ixt = np.random.randint(0, len(self.x), batch_size), np.random.randint(0, len(self.t), batch_size)
             x = tf.cast(self.x.flatten()[ixx].reshape((batch_size, 1)), dtype=tf.float32)
             t = tf.cast(self.t.flatten()[ixt].reshape((batch_size, 1)), dtype=tf.float32)
 
         return x, t
     
     def validation_batch(self):
-        x, t = np.meshgrid(self.x, self.t)
-        return tf.cast(tf.reshape(x, (-1, 1)), dtype=tf.float32), tf.cast(tf.reshape(t, (-1, 1)), dtype=tf.float32), tf.reshape(self.u, (-1, 1))
+        x, t = np.meshgrid(self.x[::4], self.t)
+        return tf.cast(tf.reshape(x, (-1, 1)), dtype=tf.float32), tf.cast(tf.reshape(t, (-1, 1)), dtype=tf.float32), tf.reshape(self.u[::4], (-1, 1))
 
 
     @tf.function
@@ -73,6 +73,7 @@ class Burgers():
                 b3_loss = tf.reduce_mean(((-tf.math.sin(np.pi*x) - u_pred) * tl)**2)
                 return f_loss, [b1_loss, b2_loss, b3_loss]
     
+    
     @tf.function
     def validation_loss(self, model, x, t, u):
         u_pred = model[0](tf.concat([x, t], axis=-1), training=False)
@@ -85,6 +86,6 @@ class Burgers():
         x, t, u = self.validation_batch()
         u_pred = model[0].predict(tf.concat([x, t], axis=-1))
 
-        show_image(u_pred.reshape(32, 32), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1])
-        show_image(u.numpy().reshape(32, 32), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1])
-        show_image((u.numpy().reshape(32, 32) - u_pred.reshape(32, 32))**2, os.path.join(path, 'u_squared_error'), extent=[-1, 1, 0, 1])
+        show_image(np.rot90(u_pred.reshape(100, 64), k=1), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1], x_label='t', y_label='x')
+        show_image(np.rot90(u.numpy().reshape(100, 64), k=1), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1], x_label='t', y_label='x')
+        show_image(np.rot90((u.numpy().reshape(100, 64) - u_pred.reshape(100, 64))**2, k=1), os.path.join(path, 'u_squared_error'), extent=[-1, 1, 0, 1], format='%.1e', x_label='t', y_label='x')

@@ -66,7 +66,7 @@ class Kirchhoff():
         F = dW_dxxxx + 2*dW_dxxyy + dW_dyyyy
         if self.inverse:
             f_loss = tf.reduce_mean(((self.p0 / model[1]) * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - F)**2)
-            w_loss = tf.reduce_mean(((self.p0 / (model[1] * np.pi**4 * (1/self.a**2 + 1/self.b**2)**2)) * \
+            w_loss = tf.reduce_mean(((self.p0 / (self.D * np.pi**4 * (1/self.a**2 + 1/self.b**2)**2)) * \
                 tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b) - W)**2)
             return f_loss, [w_loss]
         else:
@@ -112,4 +112,4 @@ class Kirchhoff():
         show_image(w.numpy().reshape(32, 32), os.path.join(path, 'w_real'), extent=[0, 1, 0, 1])
         show_image(((self.p0 / self.D) * tf.math.sin(np.pi*x/self.a)*tf.math.sin(np.pi*y/self.b)).numpy().reshape(32, 32), os.path.join(path, 'f_predicted'), extent=[0, 1, 0, 1])
         show_image((dW_dxxxx + dW_dyyyy + 2*dW_dxxyy).numpy().reshape(32, 32), os.path.join(path, 'f_real'), extent=[0, 1, 0, 1])
-        show_image((w.numpy().reshape(32, 32) - W.numpy().reshape(32, 32))**2, os.path.join(path, 'w_squared_error'), extent=[0, 1, 0, 1])
+        show_image((w.numpy().reshape(32, 32) - W.numpy().reshape(32, 32))**2, os.path.join(path, 'w_squared_error'), extent=[0, 1, 0, 1], format='%.1e')

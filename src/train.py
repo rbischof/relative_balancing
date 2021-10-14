@@ -21,11 +21,11 @@ def train(meta_args):
     if meta_args.task == 'mnist':
         model = [autoencoder()]
         if meta_args.inverse:
-            model += [tf.Variable(1., trainable=True, name='inverse_var')]
+            model += [tf.Variable(.5, trainable=True, name='inverse_var')]
     elif meta_args.network == 'fc':   
         model = [fully_connected(meta_args.layers, meta_args.nodes)]
         if meta_args.inverse:
-            model += [tf.Variable(1., trainable=True, name='inverse_var')]
+            model += [tf.Variable(.5, trainable=True, name='inverse_var')]
     else:
         raise ValueError('Network type not understood:' + meta_args.network)
 
@@ -37,8 +37,8 @@ def train(meta_args):
     else:
         raise ValueError('Optimizer type not understood:' + meta_args.optimizer)
 
-    if meta_args.inverse:
-        optimizer += [optimizer[0]]
+    #if meta_args.inverse:
+        #optimizer += [tf.keras.optimizers.Adam(learning_rate=meta_args.lr*10, beta_1=0.7, beta_2=0.9)]
 
     # initialize task
     if meta_args.task == 'helmholtz':
@@ -84,7 +84,8 @@ def train(meta_args):
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
         rho = (np.random.uniform(size=meta_args.epochs+1) < meta_args.rho).astype(int).astype(np.float32)
         args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
-        alpha = [tf.constant(meta_args.alpha, tf.float32)]
+        alpha = [tf.constant(meta_args.alpha, tf.float32)]*(meta_args.epochs+1)
+        #alpha = [tf.constant(1., tf.float32), tf.constant(0., tf.float32)]+[tf.constant(meta_args.alpha, tf.float32)]
         args.update({"alpha": alpha[0]})
 
     elif meta_args.update_rule == 'gradnorm':
@@ -93,7 +94,7 @@ def train(meta_args):
         alpha = [tf.constant(0.)]+[tf.constant(meta_args.T, dtype=tf.float32)]*(meta_args.epochs+1)
         args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
         model += [GradNormArgs(nterms=num_b_losses+1, alpha=alpha)]
-        optimizer += [optimizer[0]]
+        optimizer += [tf.keras.optimizers.Adam(learning_rate=meta_args.lr)]
 
     else:
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
@@ -128,12 +129,14 @@ def train(meta_args):
             meta_args.aggregate_boundaries
         )
 
-        for i, g in enumerate(grads):
-            if 'inverse_var' in model[i].name:
-                optimizer[i].apply_gradients(zip(g, [model[i]]))
-            else:
-                optimizer[i].apply_gradients(zip(g, model[i].trainable_variables))
-
+        parameters = model[0].trainable_variables
+        if meta_args.inverse:
+            parameters += [model[1]]
+            #optimizer[1].apply_gradients(zip(grads[1], [model[1]]))
+        optimizer[0].apply_gradients(zip(grads[0], parameters))
+        if meta_args.update_rule == 'gradnorm':
+            optimizer[-1].apply_gradients(zip(grads[-1], model[-1].trainable_variables))
+            
         loss = f_loss + tf.reduce_sum(b_losses)            
         
         if not meta_args.update_rule == 'gradnorm' or epoch == 0:
@@ -144,17 +147,18 @@ def train(meta_args):
         if meta_args.resample:
             x, y = task.training_batch(meta_args.batch_size)
         if len(alpha) > 1:
-            args['alpha'] = tf.constant(alpha[1], dtype=tf.float32)
+            args['alpha'] = alpha[1]
             alpha = alpha[1:]
         if meta_args.update_rule == 'relobalo':
-            args['rho'] = tf.constant(rho[1], dtype=tf.float32)
+            args['rho'] = rho[1]
             rho = rho[1:]
                 
         if epoch % 1000 == 0:
             x, y, u = task.validation_batch()
+
             if meta_args.inverse:
                 val_loss0, val_loss = task.validation_loss(model, x, y, u)
-                summary.append([loss, val_loss0, val_loss, f_loss]+b_losses)
+                summary.append([loss, val_loss0, val_loss, f_loss]+b_losses+[model[1].numpy()])
             else:
                 val_loss = task.validation_loss(model, x, y, u)
                 summary.append([loss, val_loss, f_loss]+b_losses)
@@ -195,7 +199,7 @@ def train(meta_args):
             # print evaluation metrics
             if meta_args.verbose:
                 print(
-                    "epoch {0:<4}".format(epoch),
+                    "epoch {:<5}".format(epoch),
                     "loss {:<.3e}".format(best_loss), 
                     "val_loss {:<.3e}".format(val_loss),
                     "F {0:<.2e}".format(f_loss), 

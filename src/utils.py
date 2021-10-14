@@ -13,7 +13,7 @@ def reduce_max_all(tensor_list):
     return [tf.reduce_max(t) for t in tensor_list]
         
 def gpu_to_numpy(args:list):
-    return [a.numpy() for a in args if tf.is_tensor(a)]
+    return [a.numpy() for a in args if tf.is_tensor(a) or isinstance(a, tf.Variable)]
     
 def create_directory(path:str):
     if not os.path.exists(path):
@@ -48,11 +48,20 @@ def append_to_results(ex_time:str, meta_args, train_error:float, val_error:float
         # Add contents of list as last row in the csv file
         csv_writer.writerow([strftime('%d.%m. %H:%M:%S', gmtime(time())), ex_time]+args+[train_error, val_error])
 
-def show_image(img:np.array, path:str=None, extent:list=[0, 1, 0, 1]):
-    _, ax = plt.subplots(1,1,figsize=(6,4.5),dpi=100)
+def show_image(img:np.array, path:str=None, extent:list=[0, 1, 0, 1], format='%.2f', x_label='x', y_label='y'):
+    plt.rc('font', size=28) #controls default text size
+    plt.rc('axes', labelsize=20)
+    plt.rc('xtick', labelsize=20) #fontsize of the x tick labels
+    plt.rc('ytick', labelsize=20) #fontsize of the y tick labels
+    fig = plt.figure(figsize=(6,4.5), dpi=200)
     ims = plt.imshow(img, cmap='plasma', extent=extent)
-    ax.figure.colorbar(ims, ax=ax, format='%.1e')
+    cb = fig.colorbar(ims, format=format)
+    cb.ax.tick_params(labelsize=20)
+    plt.xticks([extent[0], extent[0]+(extent[1]-extent[0])/2, extent[1]], [extent[0], extent[0]+(extent[1]-extent[0])/2, extent[1]])
+    plt.yticks([extent[2], extent[2]+(extent[3]-extent[2])/2, extent[3]], [extent[2], extent[2]+(extent[3]-extent[2])/2, extent[3]])
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
     plt.tight_layout(pad=0)
     if path is not None:
-        plt.savefig(path)
+        plt.savefig(path, dpi=200)
     plt.show()

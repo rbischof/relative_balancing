@@ -12,10 +12,10 @@ class Burgers():
         self.inverse = inverse
         self.nue = inverse_var if inverse_var is not None else 0.01/np.pi
         self.num_b_losses = 3 if not inverse else 1
-        data = scipy.io.loadmat('data/burgers_shock_mu_01_pi.mat')  	          # Load data from file
-        self.x = data['x']                                                        # 256 points between -1 and 1 [256x1]
-        self.t = data['t']                                                        # 100 time points between 0 and 1 [100x1] 
-        self.u = tf.cast(data['usol'], dtype=tf.float32)     # solution of 256x100 grid points
+        data = scipy.io.loadmat('data/burgers.mat')
+        self.x = data['x']
+        self.t = data['t']
+        self.u = tf.cast(np.rot90(data['usol'], k=1)[::-1], dtype=tf.float32)
 
     def training_batch(self, batch_size=1024):
         if not self.inverse:

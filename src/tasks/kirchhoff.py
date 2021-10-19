@@ -7,7 +7,7 @@ from utils import show_image
 TOL = 1e-5
 
 class Kirchhoff():
-    def __init__(self, inverse_var:float, inverse:bool):
+    def __init__(self, inverse:bool=False, inverse_var:float=None):
         self.a = 10
         self.b = 10
         self.nue = .2
@@ -16,7 +16,7 @@ class Kirchhoff():
         self.num_b_losses = 8 if not inverse else 1
         self.D = inverse_var if inverse_var is not None else 20.8333333333
 
-    def training_batch(self, batch_size=1024):
+    def training_batch(self, batch_size:int=1024):
         # sample internal area
         train_internal = np.random.uniform([0, 0], [self.a, self.b], size=(batch_size//2, 2))
     
@@ -44,7 +44,7 @@ class Kirchhoff():
         return x, y, w
 
     @tf.function
-    def derivatives(self, model, x, y, training=False):
+    def derivatives(self, model:tf.keras.Model, x, y, training:bool=False):
         W = model[0](tf.concat([x, y], axis=-1), training=training)
         dW_dx, dW_dy = tf.gradients(W, [x, y])
         dW_dxx = tf.gradients(dW_dx, x)[0]
@@ -59,7 +59,7 @@ class Kirchhoff():
         return W, dW_dx, dW_dy, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy
 
     @tf.function
-    def calculate_loss(self, model, x, y, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model:tf.keras.Model, x, y, aggregate_boundaries:bool=False, training:bool=False):
         W, _, _, Mx, My, dW_dxxxx, dW_dyyyy, dW_dxxyy = self.derivatives(model, x, y, training=training)
         
         # governing equation loss
@@ -96,7 +96,7 @@ class Kirchhoff():
 
 
     @tf.function
-    def validation_loss(self, model, x, y, w):
+    def validation_loss(self, model:tf.keras.Model, x, y, w):
         w_pred = model[0](tf.concat([x, y], axis=-1), training=False)
         if not self.inverse:
             return tf.reduce_mean((w - w_pred)**2)

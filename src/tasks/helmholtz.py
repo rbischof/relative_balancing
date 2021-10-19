@@ -7,12 +7,12 @@ from utils import show_image
 TOL = 1e-5
 
 class Helmholtz():
-    def __init__(self, inverse_var:float, inverse:bool):
+    def __init__(self, inverse:bool=False, inverse_var:float=None):
         self.inverse = inverse
         self.num_b_losses = 4 if not inverse else 1
         self.k = inverse_var if inverse_var is not None else 1
 
-    def training_batch(self, batch_size=1024):
+    def training_batch(self, batch_size:int=1024):
         x_in = tf.random.uniform((2*batch_size//3, 1), minval=-1, maxval=1, dtype=tf.float32)
         x_b1 = tf.random.uniform((batch_size//12, 1), minval=-1, maxval=(-1+TOL), dtype=tf.float32)
         x_b2 = tf.random.uniform((batch_size//12, 1), minval=(1-TOL), maxval=1, dtype=tf.float32)
@@ -36,7 +36,7 @@ class Helmholtz():
         u = tf.cast(tf.math.sin(np.pi*x)*tf.math.sin(4*np.pi*y), dtype=tf.float32)
         return x, y, u
 
-    def calculate_loss(self, model, x, y, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model:tf.keras.Model, x, y, aggregate_boundaries:bool=False, training:bool=False):
         # predictions and derivatives
         u_pred = model[0](tf.concat([x, y], axis=-1), training=training)
         du_dx, du_dy = tf.gradients(u_pred, [x, y])
@@ -69,7 +69,7 @@ class Helmholtz():
                 return f_loss, [b1_loss, b2_loss, b3_loss, b4_loss]
 
     @tf.function
-    def validation_loss(self, model, x, y, u):
+    def validation_loss(self, model:tf.keras.Model, x, y, u):
         u_pred = model[0](tf.concat([x, y], axis=-1), training=False)
         if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)

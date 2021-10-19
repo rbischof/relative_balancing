@@ -8,7 +8,7 @@ from utils import show_image
 TOL = 1e-5
 
 class Burgers():
-    def __init__(self, inverse_var:float, inverse:bool):
+    def __init__(self, inverse:bool=False, inverse_var:float=None):
         self.inverse = inverse
         self.nue = inverse_var if inverse_var is not None else 0.01/np.pi
         self.num_b_losses = 3 if not inverse else 1
@@ -17,7 +17,7 @@ class Burgers():
         self.t = data['t']
         self.u = tf.cast(np.rot90(data['usol'], k=1)[::-1], dtype=tf.float32)
 
-    def training_batch(self, batch_size=1024):
+    def training_batch(self, batch_size:int=1024):
         if not self.inverse:
             x_in = tf.random.uniform((2*batch_size//3, 1), minval=-1, maxval=1, dtype=tf.float32)
             x_b1 = tf.random.uniform((batch_size//9, 1), minval=-1, maxval=(-1+TOL), dtype=tf.float32)
@@ -43,7 +43,7 @@ class Burgers():
 
 
     @tf.function
-    def calculate_loss(self, model, x, t, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model:tf.keras.Model, x, t, aggregate_boundaries:bool=False, training:bool=False):
         if self.inverse:
             x, t, u = self.validation_batch()
         # predictions and derivatives
@@ -75,7 +75,7 @@ class Burgers():
     
     
     @tf.function
-    def validation_loss(self, model, x, t, u):
+    def validation_loss(self, model:tf.keras.Model, x, t, u):
         u_pred = model[0](tf.concat([x, t], axis=-1), training=False)
         if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)

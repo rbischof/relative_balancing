@@ -7,23 +7,23 @@ from utils import show_image
 TOL = 1e-5
 
 class MNIST():
-    def __init__(self, inverse_var:float, inverse:bool):
+    def __init__(self, inverse:bool=False, inverse_var:float=None):
         self.inverse = inverse
         self.num_b_losses = 2 if not inverse else 1
         self.x_train = np.load('data/x_train.npy') / 255.
         self.x_test = np.load('data/x_test.npy') / 255.
         self.a = inverse_var if inverse_var is not None else 10
 
-    def training_batch(self, batch_size=1024):
+    def training_batch(self, batch_size:int=1024):
         ix = np.random.randint(0, len(self.x_train), batch_size)
         return self.x_train[ix], self.x_train[ix]
 
-    def validation_batch(self, batch_size=4096):
+    def validation_batch(self, batch_size:int=4096):
         ix = np.random.randint(0, len(self.x_test), batch_size)
         return self.x_test[ix], self.x_test[ix], self.x_test[ix]
 
     @tf.function
-    def calculate_loss(self, model, x, y, aggregate_boundaries=False, training=False):
+    def calculate_loss(self, model:tf.keras.Model, x, y, aggregate_boundaries:bool=False, training:bool=False):
         p = model[0](x, training=training)
         dpdx, dpdy = tf.image.image_gradients(p)
         dxdx, dxdy = tf.image.image_gradients(x)
@@ -43,7 +43,7 @@ class MNIST():
 
 
     @tf.function
-    def validation_loss(self, model, x, y, w):
+    def validation_loss(self, model:tf.keras.Model, x, y, w):
         p = model[0](x, training=False)
         dpdx, dpdy = tf.image.image_gradients(p)
         dxdx, dxdy = tf.image.image_gradients(x)

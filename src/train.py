@@ -9,8 +9,8 @@ from tasks.mnist import MNIST
 from tasks.burgers import Burgers
 from tasks.helmholtz import Helmholtz
 from tasks.kirchhoff import Kirchhoff
-from models import fully_connected, GradNormArgs, autoencoder
-from update_rules import manual, lrannealing, softadapt, relobalo, gradnorm
+from update_rules import manual, lrannealing, softadapt, relobralo, gradnorm
+from models import fully_connected, partially_differentiable, GradNormArgs, autoencoder
 from utils import gpu_to_numpy, reduce_mean_all, append_to_results, create_directory
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
@@ -20,14 +20,16 @@ def train(meta_args):
     # initialize network
     if meta_args.task == 'mnist':
         model = [autoencoder()]
-        if meta_args.inverse:
-            model += [tf.Variable(.5, trainable=True, name='inverse_var')]
     elif meta_args.network == 'fc':   
         model = [fully_connected(meta_args.layers, meta_args.nodes)]
-        if meta_args.inverse:
-            model += [tf.Variable(.5, trainable=True, name='inverse_var')]
+    elif meta_args.network == 'partial_diff':
+        model = [partially_differentiable(meta_args.layers, meta_args.nodes)]
     else:
         raise ValueError('Network type not understood:' + meta_args.network)
+
+    # initialize trainable variable to approximate PDE parameter
+    if meta_args.inverse:
+        model += [tf.Variable(.5, trainable=True, name='inverse_var')]
 
     # initialize optimizer
     if meta_args.optimizer == 'adam':
@@ -36,9 +38,6 @@ def train(meta_args):
         optimizer = [tf.keras.optimizers.SGD(learning_rate=meta_args.lr)]
     else:
         raise ValueError('Optimizer type not understood:' + meta_args.optimizer)
-
-    #if meta_args.inverse:
-        #optimizer += [tf.keras.optimizers.Adam(learning_rate=meta_args.lr*10, beta_1=0.7, beta_2=0.9)]
 
     # initialize task
     if meta_args.task == 'helmholtz':
@@ -76,16 +75,15 @@ def train(meta_args):
         alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]
         args.update({"alpha": tf.constant(0., dtype=tf.float32)})
 
-    elif meta_args.update_rule == 'relobalo':
-        update_rule = relobalo
+    elif meta_args.update_rule == 'relobralo':
+        update_rule = relobralo
         args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"l0"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
         rho = (np.random.uniform(size=meta_args.epochs+1) < meta_args.rho).astype(int).astype(np.float32)
         args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
-        alpha = [tf.constant(meta_args.alpha, tf.float32)]*(meta_args.epochs+1)
-        #alpha = [tf.constant(1., tf.float32), tf.constant(0., tf.float32)]+[tf.constant(meta_args.alpha, tf.float32)]
+        alpha = [tf.constant(1., tf.float32), tf.constant(0., tf.float32)]+[tf.constant(meta_args.alpha, tf.float32)]
         args.update({"alpha": alpha[0]})
 
     elif meta_args.update_rule == 'gradnorm':
@@ -100,6 +98,7 @@ def train(meta_args):
         raise ValueError('Update rule not understood:' + meta_args.update_rule)
 
 
+    # inititalize logging
     summary = []
     args_summary = []
     if isinstance(args, dict):
@@ -132,16 +131,15 @@ def train(meta_args):
         parameters = model[0].trainable_variables
         if meta_args.inverse:
             parameters += [model[1]]
-            #optimizer[1].apply_gradients(zip(grads[1], [model[1]]))
         optimizer[0].apply_gradients(zip(grads[0], parameters))
+
         if meta_args.update_rule == 'gradnorm':
             optimizer[-1].apply_gradients(zip(grads[-1], model[-1].trainable_variables))
             
-        loss = f_loss + tf.reduce_sum(b_losses)            
         
         if not meta_args.update_rule == 'gradnorm' or epoch == 0:
             args = oargs.copy()
-        if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'relobalo') and epoch == 0:
+        if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'relobralo') and epoch == 0:
             for i in range(num_b_losses+1):
                 args['l0'+str(i)] = ([f_loss]+b_losses)[i]
         if meta_args.resample:
@@ -149,11 +147,14 @@ def train(meta_args):
         if len(alpha) > 1:
             args['alpha'] = alpha[1]
             alpha = alpha[1:]
-        if meta_args.update_rule == 'relobalo':
+        if meta_args.update_rule == 'relobralo':
             args['rho'] = rho[1]
             rho = rho[1:]
-                
+
+        # evaluate and log       
         if epoch % 1000 == 0:
+            loss = f_loss + tf.reduce_sum(b_losses)            
+            
             x, y, u = task.validation_batch()
 
             if meta_args.inverse:
@@ -166,13 +167,11 @@ def train(meta_args):
             loss, f_loss, val_loss = gpu_to_numpy(reduce_mean_all([loss, f_loss, val_loss]))
             b_losses  = gpu_to_numpy(b_losses)
 
-            
             if isinstance(args, dict):
                 e_args = gpu_to_numpy(args.values())
-                args_summary.append(e_args)
             else:
                 e_args = gpu_to_numpy(args.variables())
-                args_summary.append(e_args)
+            args_summary.append(e_args)
         
             # reduce lr or stop early if model doesn't improve after warmup phase
             if loss < best_loss:
@@ -210,6 +209,7 @@ def train(meta_args):
 
     # save results
     unique_path = create_directory(os.path.join('experiments', meta_args.path))
+    print('saving model in', unique_path)
     meta_args.path = unique_path
     append_to_results((time()-start)/epoch*1000, meta_args, best_loss, best_val_loss)
     np.save(os.path.join(unique_path, 'summary'), summary)

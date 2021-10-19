@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Reshape, Conv2D, Flatten, BatchNormalization, Dropout, Conv2DTranspose
+from tensorflow.keras.layers import Input, Dense, Reshape, Conv2D, Flatten, BatchNormalization, Dropout, Conv2DTranspose, Concatenate
 
 
 def fully_connected(nlayers, nnodes, activation='tanh', name='fully_connected'):
@@ -9,6 +9,18 @@ def fully_connected(nlayers, nnodes, activation='tanh', name='fully_connected'):
     u = xy
     for i in range(nlayers):
         u = Dense(nnodes, activation=activation, name='dense'+str(i))(u)
+    u = Dense(1)(u)
+    return Model(xy, u, name=name)
+
+def partially_differentiable(nlayers, nnodes, name='partially_differentiable'):
+    xy = Input((2,))
+    u = xy
+    for i in range(nlayers):
+        u = Dense(3*nnodes, name='dense'+str(i))(u)
+        u0 = tf.nn.relu(u[:, :nnodes])
+        u1 = tf.nn.relu(100*u[:, nnodes:2*nnodes])*tf.nn.relu(u[:, nnodes:2*nnodes])
+        u2 = tf.nn.relu(1000*u[:, 2*nnodes:3*nnodes])*tf.nn.relu(u[:, 2*nnodes:3*nnodes])*tf.nn.relu(u[:, 2*nnodes:3*nnodes])
+        u = Concatenate()([u0, u1, u2])
     u = Dense(1)(u)
     return Model(xy, u, name=name)
     

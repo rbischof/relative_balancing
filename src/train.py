@@ -10,7 +10,7 @@ from tasks.burgers import Burgers
 from tasks.helmholtz import Helmholtz
 from tasks.kirchhoff import Kirchhoff
 from update_rules import manual, lrannealing, softadapt, relobralo, gradnorm
-from models import fully_connected, partially_differentiable, GradNormArgs, autoencoder
+from models import fully_connected, GradNormArgs, autoencoder
 from utils import gpu_to_numpy, reduce_mean_all, append_to_results, create_directory
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
@@ -22,8 +22,6 @@ def train(meta_args):
         model = [autoencoder()]
     elif meta_args.network == 'fc':   
         model = [fully_connected(meta_args.layers, meta_args.nodes)]
-    elif meta_args.network == 'partial_diff':
-        model = [partially_differentiable(meta_args.layers, meta_args.nodes)]
     else:
         raise ValueError('Network type not understood:' + meta_args.network)
 
@@ -51,35 +49,32 @@ def train(meta_args):
     else:
         raise ValueError('Task type not understood:' + meta_args.task)
 
-    num_b_losses = 1 if meta_args.aggregate_boundaries else task.num_b_losses
-
     # initialize update rule
     if meta_args.update_rule == 'manual':
         update_rule = manual
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        args = {"lam"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)}
         alpha = [1.]
         args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
 
     elif meta_args.update_rule == 'lrannealing':
         update_rule = lrannealing
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses)}
-        alpha = [[tf.constant(1.) for _ in range(99)] + [tf.constant(meta_args.alpha, dtype=tf.float32)]]*((meta_args.epochs+1)//100)
-        alpha = [a for sub_alpha in alpha for a in sub_alpha]
+        args = {"lam"+str(i): tf.constant(1.) for i in range(task.num_b_losses)}
+        alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]*((meta_args.epochs+1))
         args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
 
     elif meta_args.update_rule == 'softadapt':
         update_rule = softadapt
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
-        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args = {"lam"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)}
+        args.update({"l"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
         alpha = [tf.constant(meta_args.alpha, dtype=tf.float32)]
         args.update({"alpha": tf.constant(0., dtype=tf.float32)})
 
     elif meta_args.update_rule == 'relobralo':
         update_rule = relobralo
-        args = {"lam"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
-        args.update({"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
-        args.update({"l0"+str(i): tf.constant(1.) for i in range(num_b_losses+1)})
+        args = {"lam"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)}
+        args.update({"l"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)})
+        args.update({"l0"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)})
         args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
         rho = (np.random.uniform(size=meta_args.epochs+1) < meta_args.rho).astype(int).astype(np.float32)
         args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
@@ -88,10 +83,10 @@ def train(meta_args):
 
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
-        args = {"l"+str(i): tf.constant(1.) for i in range(num_b_losses+1)}
+        args = {"l"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)}
         alpha = [tf.constant(0.)]+[tf.constant(meta_args.T, dtype=tf.float32)]*(meta_args.epochs+1)
         args.update({"alpha": tf.constant(alpha[0], dtype=tf.float32)})
-        model += [GradNormArgs(nterms=num_b_losses+1, alpha=alpha)]
+        model += [GradNormArgs(nterms=task.num_b_losses+1, alpha=alpha)]
         optimizer += [tf.keras.optimizers.Adam(learning_rate=meta_args.lr)]
 
     else:
@@ -118,14 +113,15 @@ def train(meta_args):
     print('start training of', meta_args.task, 'in', meta_args.path)
     start = time()
     for epoch in range(meta_args.epochs):
+        if meta_args.resample:
+            x, y = task.training_batch(meta_args.batch_size)
         
-        grads, f_loss, b_losses, oargs = update_rule(
+        grads, f_loss, b_losses, args = update_rule(
             model, 
             task, 
             tf.constant(x, dtype=tf.float32), 
             tf.constant(y, dtype=tf.float32), 
-            args,
-            meta_args.aggregate_boundaries
+            args
         )
 
         parameters = model[0].trainable_variables
@@ -137,13 +133,9 @@ def train(meta_args):
             optimizer[-1].apply_gradients(zip(grads[-1], model[-1].trainable_variables))
             
         
-        if not meta_args.update_rule == 'gradnorm' or epoch == 0:
-            args = oargs.copy()
         if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'relobralo') and epoch == 0:
-            for i in range(num_b_losses+1):
+            for i in range(task.num_b_losses+1):
                 args['l0'+str(i)] = ([f_loss]+b_losses)[i]
-        if meta_args.resample:
-            x, y = task.training_batch(meta_args.batch_size)
         if len(alpha) > 1:
             args['alpha'] = alpha[1]
             alpha = alpha[1:]
@@ -239,7 +231,6 @@ parser.add_argument('--update_rule', default='manual', type=str, help='type of b
 parser.add_argument('--T', default=1., type=float, help='temperature parameter for softmax')
 parser.add_argument('--alpha', default=.999, type=float, help='rate for exponential decay')
 parser.add_argument('--rho', default=1., type=float, help='rate for exponential decay')
-parser.add_argument('--aggregate_boundaries', action='store_true', help='aggregate all boundary terms into one before balancing')
 
 parser.add_argument('--epochs', default=100000, type=int, help='number of epochs')
 parser.add_argument('--resample', action='store_true', help='resample datapoints or keep them fixed')

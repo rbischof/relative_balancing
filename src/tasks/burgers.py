@@ -65,7 +65,7 @@ class Burgers():
             tl = tf.cast(t < TOL, dtype=tf.float32)
 
             if aggregate_boundaries:
-                b_loss = tf.reduce_mean((u_pred * (xl + xu + tl))**2)
+                b_loss = tf.reduce_mean((u_pred * (xl + xu))**2) + tf.reduce_mean(((-tf.math.sin(np.pi*x) - u_pred) * tl)**2)
                 return f_loss, [b_loss]
             else:
                 b1_loss = tf.reduce_mean((u_pred * xu)**2)

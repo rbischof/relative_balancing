@@ -15,7 +15,9 @@ from update_rules import manual, lrannealing, softadapt, relobralo, gradnorm
 from models import fully_connected, GradNormArgs, autoencoder
 from utils import gpu_to_numpy, reduce_mean_all, append_to_results, create_directory
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '4'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+print('Tensorflow version', tf.__version__)
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 def train(meta_args):
 

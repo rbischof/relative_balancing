@@ -1,8 +1,10 @@
 src/experiments
 src/data
-*/__pycache__
+__pycache__
 *.sh
 *.csv
 .vscode
 *.csv#
 lsf.*
+*.ipynb
+.DS_Store

@@ -46,7 +46,7 @@ def softadapt(model, task, x, y, args:dict, aggregate_boundaries=False):
     T = args['T']
     losses = [f_loss] + b_losses
 
-    lambs_hat = tf.stop_gradient(tf.nn.softmax([losses[i]/(args['l'+str(i)]*T+1e-12) for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
+    lambs_hat = tf.stop_gradient(tf.nn.softmax([(losses[i] - args['l'+str(i)])*T for i in range(len(losses))])*tf.cast(len(losses), dtype=tf.float32))
     lambs = [args['alpha']*args['lam'+str(i)] + (1-args['alpha'])*lambs_hat[i] for i in range(len(losses))]
 
     loss = tf.reduce_sum([lambs[i]*losses[i] for i in range(len(losses))])

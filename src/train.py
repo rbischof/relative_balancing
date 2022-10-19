@@ -9,6 +9,8 @@ from tasks.mnist import MNIST
 from tasks.burgers import Burgers
 from tasks.helmholtz import Helmholtz
 from tasks.kirchhoff import Kirchhoff
+from tasks.poisson_L import Poisson_L
+from tasks.allen_cahn import AllenCahn
 from update_rules import manual, lrannealing, softadapt, relobralo, gradnorm
 from models import fully_connected, GradNormArgs, autoencoder
 from utils import gpu_to_numpy, reduce_mean_all, append_to_results, create_directory
@@ -44,6 +46,10 @@ def train(meta_args):
         task = Burgers(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     elif meta_args.task == 'kirchhoff':
         task = Kirchhoff(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'allen_cahn':
+        task = AllenCahn(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'poisson_L':
+        task = Poisson_L(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     elif meta_args.task == 'mnist':
         task = MNIST(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
     else:
@@ -96,6 +102,7 @@ def train(meta_args):
     # inititalize logging
     summary = []
     args_summary = []
+    train_summary = []
     if isinstance(args, dict):
         args_keys = args.keys()
     best_loss = 1e9
@@ -132,8 +139,7 @@ def train(meta_args):
         if meta_args.update_rule == 'gradnorm':
             optimizer[-1].apply_gradients(zip(grads[-1], model[-1].trainable_variables))
             
-        
-        if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'relobralo') and epoch == 0:
+        if (meta_args.update_rule == 'gradnorm' or meta_args.update_rule == 'relobralo') and epoch == 1:
             for i in range(task.num_b_losses+1):
                 args['l0'+str(i)] = ([f_loss]+b_losses)[i]
         if len(alpha) > 1:
@@ -143,9 +149,11 @@ def train(meta_args):
             args['rho'] = rho[1]
             rho = rho[1:]
 
+        train_summary.append((f_loss + tf.reduce_sum(b_losses)).numpy())
+
         # evaluate and log       
         if epoch % 1000 == 0:
-            loss = f_loss + tf.reduce_sum(b_losses)            
+            loss = np.mean(train_summary)
             
             x, y, u = task.validation_batch()
 
@@ -191,13 +199,15 @@ def train(meta_args):
             if meta_args.verbose:
                 print(
                     "epoch {:<5}".format(epoch),
-                    "loss {:<.3e}".format(best_loss), 
+                    "loss {:<.3e}".format(loss), 
                     "val_loss {:<.3e}".format(val_loss),
                     "F {0:<.2e}".format(f_loss), 
                     "B", b_losses,
                     "ARGS" if not isinstance(args, dict) else list(zip(args_keys, e_args)),
                     strftime('%H:%M:%S', gmtime(time()-start))
                 )
+            
+            train_summary = []
 
     # save results
     unique_path = create_directory(os.path.join('experiments', meta_args.path))
@@ -207,7 +217,7 @@ def train(meta_args):
     np.save(os.path.join(unique_path, 'summary'), summary)
     if args is not None:
         np.save(os.path.join(unique_path, 'args_summary'), args_summary)
-    model[0].save(os.path.join(unique_path, 'model_'+str(i)))
+    model[0].save(os.path.join(unique_path, 'model'))
     task.visualise(model, unique_path)
     return best_val_loss
         
@@ -221,7 +231,7 @@ parser.add_argument('--network', default='fc', type=str, help='type of network')
 
 parser.add_argument('--optimizer', default='adam', type=str, help='type of optimizer')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
-parser.add_argument('--patience', default=3, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
+parser.add_argument('--patience', default=4, type=int, help='how many evaluations without improvement to wait before reducing learning rate')
 parser.add_argument('--factor', default=.1, type=float, help='multiplicative factor by which to reduce the learning rate')
 
 parser.add_argument('--task', default='helmholtz', type=str, help='type of task to fit')

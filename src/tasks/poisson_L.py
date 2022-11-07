@@ -77,12 +77,12 @@ class Poisson_L():
                 b_loss = tf.reduce_mean((u_pred * (xl + xu0 + xu1 + yl + yu0 + yu1))**2)
                 return f_loss, [b_loss]
             else:
-                b1_loss = tf.reduce_mean((u_pred * xl)**2)
-                b2_loss = tf.reduce_mean((u_pred * xu0)**2)
-                b3_loss = tf.reduce_mean((u_pred * xu1)**2)
-                b4_loss = tf.reduce_mean((u_pred * yl)**2)
-                b5_loss = tf.reduce_mean((u_pred * yu0)**2)
-                b6_loss = tf.reduce_mean((u_pred * yu1)**2)
+                b1_loss = 10*tf.reduce_mean((u_pred * xl)**2)
+                b2_loss = 100*tf.reduce_mean((u_pred * xu0)**2)
+                b3_loss = 10*tf.reduce_mean((u_pred * xu1)**2)
+                b4_loss = 10*tf.reduce_mean((u_pred * yl)**2)
+                b5_loss = 10*tf.reduce_mean((u_pred * yu0)**2)
+                b6_loss = 100*tf.reduce_mean((u_pred * yu1)**2)
                 return f_loss, [b1_loss, b2_loss, b3_loss, b4_loss, b5_loss, b6_loss]
 
     @tf.function

@@ -1,7 +1,7 @@
 src/experiments
 src/data
 __pycache__
-*.sh
+*/*.sh
 *.csv
 .vscode
 *.csv#

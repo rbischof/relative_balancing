@@ -15,6 +15,8 @@ class Kirchhoff():
         self.inverse = inverse
         self.num_b_losses = 8 if not inverse else 1
         self.D = inverse_var if inverse_var is not None else 20.8333333333
+        self.data_min = (0, 0)
+        self.data_max = (self.a, self.b)
 
     def training_batch(self, batch_size:int=1024):
         # sample internal area
@@ -45,7 +47,7 @@ class Kirchhoff():
 
     @tf.function
     def derivatives(self, model:tf.keras.Model, x, y, training:bool=False):
-        W = model[0](tf.concat([x, y], axis=-1), training=training)
+        W = model[0]([x, y], training=training)
         dW_dx, dW_dy = tf.gradients(W, [x, y])
         dW_dxx = tf.gradients(dW_dx, x)[0]
         dW_dyy = tf.gradients(dW_dy, y)[0]
@@ -79,7 +81,7 @@ class Kirchhoff():
             yu = tf.cast(y > self.b - TOL, dtype=tf.float32)
 
             if aggregate_boundaries:
-                b_loss = tf.reduce_mean(((xl + xu + yl + yu)*W)**2 + \
+                b_loss = tf.reduce_sum(((xl + xu + yl + yu)*W)**2 + \
                     ((xl + xu)*Mx)**2 + ((yl + yu)*My)**2)
                 return f_loss, [b_loss]
             else:
@@ -97,7 +99,7 @@ class Kirchhoff():
 
     @tf.function
     def validation_loss(self, model:tf.keras.Model, x, y, w):
-        w_pred = model[0](tf.concat([x, y], axis=-1), training=False)
+        w_pred = model[0]([x, y], training=False)
         if not self.inverse:
             return tf.reduce_mean((w - w_pred)**2)
         else:

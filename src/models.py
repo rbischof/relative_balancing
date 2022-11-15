@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.models import Model
@@ -8,14 +9,15 @@ class PINNGlorotNormal(tf.keras.initializers.Initializer):
     return (tf.cast(tf.experimental.numpy.random.randint(0, 2, shape, dtype=tf.experimental.numpy.int32) * 2 - 1, dtype=tf.float32) + tf.keras.initializers.GlorotNormal().__call__(shape, dtype, **kwargs)) / shape[0]
 
 
-def fully_connected(nlayers, nnodes, activation='tanh', name='fully_connected'):
-    xy = Input((2,))
-    u = xy
-    u = Dense(nnodes, activation=activation, kernel_initializer=PINNGlorotNormal(), name='dense0')(u)
+def fully_connected(nlayers, nnodes, data_min:tuple, data_max:tuple, activation=tf.math.sin, name='fully_connected'):
+    x, y = Input((1,), name='x'), Input((1,), name='y')
+
+    u = Concatenate()([(x - data_min[0]) / (data_max[0] - data_min[0]), (y - data_min[1]) / (data_max[1] - data_min[1])]) * 2 - 1
+    u = Dense(nnodes, activation=activation, kernel_initializer=tf.keras.initializers.GlorotNormal(), name='dense0')(u)
     for i in range(1, nlayers):
-        u = Dense(nnodes, activation=activation, kernel_initializer=PINNGlorotNormal(), name='dense'+str(i))(u) + u
-    u = Dense(1, kernel_initializer=PINNGlorotNormal())(u)
-    return Model(xy, u, name=name)
+        u = Dense(nnodes, activation=activation, kernel_initializer=tf.keras.initializers.GlorotNormal(), name='dense'+str(i))(u) + u
+    u = Dense(1, activation='sigmoid', kernel_initializer=tf.keras.initializers.GlorotNormal())(u)
+    return Model([x, y], u, name=name)
     
 
 class GradNormArgs(tf.Module):

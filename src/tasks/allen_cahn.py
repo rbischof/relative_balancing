@@ -12,6 +12,8 @@ class AllenCahn():
         self.inverse = inverse
         self.gamma = inverse_var if inverse_var else 0.0001
         self.num_b_losses = 3 if not inverse else 1
+        self.data_min = (-1, 0)
+        self.data_max = (1, 1)
 
         data = scipy.io.loadmat('data/allen_cahn.mat')
         x, t = data['x'], data['tt']
@@ -45,7 +47,7 @@ class AllenCahn():
         # predictions and derivatives
         batch_size = tf.shape(x)[0]
         step = batch_size//8
-        u_pred = model[0](tf.concat([x, t], axis=-1), training=training)
+        u_pred = model[0]([x, t], training=training)
         du_dx, du_dt = tf.gradients(u_pred, [x, t])
         du_dxx = tf.gradients(du_dx, x)[0]
 
@@ -69,7 +71,7 @@ class AllenCahn():
     
     @tf.function
     def validation_loss(self, model:tf.keras.Model, x, t, u):
-        u_pred = model[0](tf.concat([x, t], axis=-1), training=False)
+        u_pred = model[0]([x, t], training=False)
         if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)
         else:
@@ -77,7 +79,7 @@ class AllenCahn():
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, t, u = self.validation_batch()
-        u_pred = model[0].predict(tf.concat([x, t], axis=-1))
+        u_pred = model[0].predict([x, t])
 
         show_image(u_pred.reshape(512, 201), os.path.join(path, 'u_predicted'), extent=[0, 1, -1, 1], x_label='t', y_label='x')
         show_image(u.numpy().reshape(512, 201), os.path.join(path, 'u_real'), extent=[0, 1, -1, 1], x_label='t', y_label='x')

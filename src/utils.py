@@ -53,15 +53,15 @@ def show_image(img:np.array, path:str=None, extent:list=[0, 1, 0, 1], format='%.
     plt.rc('axes', labelsize=20)
     plt.rc('xtick', labelsize=20) #fontsize of the x tick labels
     plt.rc('ytick', labelsize=20) #fontsize of the y tick labels
-    fig = plt.figure(figsize=(6,4.5), dpi=200)
-    ims = plt.imshow(img, cmap='plasma', extent=extent)
+    fig = plt.figure(figsize=(6, 4.5), dpi=100)
+    ims = plt.imshow(img, cmap='plasma')
     cb = fig.colorbar(ims, format=format)
     cb.ax.tick_params(labelsize=20)
-    plt.xticks([extent[0], extent[0]+(extent[1]-extent[0])/2, extent[1]], [extent[0], extent[0]+(extent[1]-extent[0])/2, extent[1]])
-    plt.yticks([extent[2], extent[2]+(extent[3]-extent[2])/2, extent[3]], [extent[2], extent[2]+(extent[3]-extent[2])/2, extent[3]])
+    plt.xticks([0, img.shape[1] // 2, img.shape[1]], [extent[0], extent[0]+(extent[1]-extent[0])/2, extent[1]])
+    plt.yticks([0, img.shape[0] // 2, img.shape[0]], [extent[3], extent[2]+(extent[3]-extent[2])/2, extent[2]])
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.tight_layout(pad=0)
     if path is not None:
-        plt.savefig(path, dpi=200)
+        plt.savefig(path, dpi=100)
     plt.show()

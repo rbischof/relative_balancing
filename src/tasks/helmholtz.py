@@ -11,6 +11,8 @@ class Helmholtz():
         self.inverse = inverse
         self.num_b_losses = 4 if not inverse else 1
         self.k = inverse_var if inverse_var is not None else 1
+        self.data_min = (-1, -1)
+        self.data_max = (1, 1)
 
     def training_batch(self, batch_size:int=1024):
         x_in = tf.random.uniform((2*batch_size//3, 1), minval=-1, maxval=1, dtype=tf.float32)
@@ -38,7 +40,7 @@ class Helmholtz():
 
     def calculate_loss(self, model:tf.keras.Model, x, y, aggregate_boundaries:bool=False, training:bool=False):
         # predictions and derivatives
-        u_pred = model[0](tf.concat([x, y], axis=-1), training=training)
+        u_pred = model[0]([x, y], training=training)
         du_dx, du_dy = tf.gradients(u_pred, [x, y])
         du_dxx = tf.gradients(du_dx, x)[0]
         du_dyy = tf.gradients(du_dy, y)[0]
@@ -70,7 +72,7 @@ class Helmholtz():
 
     @tf.function
     def validation_loss(self, model:tf.keras.Model, x, y, u):
-        u_pred = model[0](tf.concat([x, y], axis=-1), training=False)
+        u_pred = model[0]([x, y], training=False)
         if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)
         else:
@@ -79,7 +81,7 @@ class Helmholtz():
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, y, u = self.validation_batch()
-        u_pred = model[0].predict(tf.concat([x, y], axis=-1))
+        u_pred = model[0].predict([x, y])
 
         show_image(u_pred.reshape(32, 32), os.path.join(path, 'u_predicted'), extent=[-1, 1, -1, 1])
         show_image(u.numpy().reshape(32, 32), os.path.join(path, 'u_real'), extent=[-1, 1, -1, 1])

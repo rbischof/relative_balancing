@@ -5,11 +5,11 @@ import tensorflow as tf
 
 from time import time, strftime, gmtime
 
-from tasks.mnist import MNIST
 from tasks.burgers import Burgers
 from tasks.helmholtz import Helmholtz
 from tasks.kirchhoff import Kirchhoff
 from tasks.poisson_L import Poisson_L
+from tasks.diffusion_sorption import DiffusionSorption1D
 from tasks.allen_cahn import AllenCahn
 from update_rules import manual, lrannealing, softadapt, relobralo, gradnorm
 from models import fully_connected, GradNormArgs, autoencoder
@@ -21,11 +21,25 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 def train(meta_args):
 
+    # initialize task
+    if meta_args.task == 'helmholtz':
+        task = Helmholtz(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'burgers':
+        task = Burgers(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'kirchhoff':
+        task = Kirchhoff(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'allen_cahn':
+        task = AllenCahn(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'poisson_L':
+        task = Poisson_L(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    elif meta_args.task == 'diffusion_sorption':
+        task = DiffusionSorption1D(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
+    else:
+        raise ValueError('Task type not understood:' + meta_args.task)
+
     # initialize network
-    if meta_args.task == 'mnist':
-        model = [autoencoder()]
-    elif meta_args.network == 'fc':   
-        model = [fully_connected(meta_args.layers, meta_args.nodes)]
+    if meta_args.network == 'fc':   
+        model = [fully_connected(nlayers=meta_args.layers, nnodes=meta_args.nodes, data_min=task.data_min, data_max=task.data_max)]
     else:
         raise ValueError('Network type not understood:' + meta_args.network)
 
@@ -40,22 +54,6 @@ def train(meta_args):
         optimizer = [tf.keras.optimizers.SGD(learning_rate=meta_args.lr)]
     else:
         raise ValueError('Optimizer type not understood:' + meta_args.optimizer)
-
-    # initialize task
-    if meta_args.task == 'helmholtz':
-        task = Helmholtz(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    elif meta_args.task == 'burgers':
-        task = Burgers(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    elif meta_args.task == 'kirchhoff':
-        task = Kirchhoff(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    elif meta_args.task == 'allen_cahn':
-        task = AllenCahn(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    elif meta_args.task == 'poisson_L':
-        task = Poisson_L(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    elif meta_args.task == 'mnist':
-        task = MNIST(inverse_var=meta_args.inverse_var, inverse=meta_args.inverse)
-    else:
-        raise ValueError('Task type not understood:' + meta_args.task)
 
     # initialize update rule
     if meta_args.update_rule == 'manual':
@@ -83,11 +81,11 @@ def train(meta_args):
         args = {"lam"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)}
         args.update({"l"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)})
         args.update({"l0"+str(i): tf.constant(1.) for i in range(task.num_b_losses+1)})
-        args.update({"T": tf.constant(meta_args.T, dtype=tf.float32)})
+        args["T"] = tf.constant(meta_args.T, dtype=tf.float32)
         rho = (np.random.uniform(size=meta_args.epochs+1) < meta_args.rho).astype(int).astype(np.float32)
-        args.update({'rho': tf.constant(rho[0], dtype=tf.float32)})
+        args['rho'] = tf.constant(rho[0], dtype=tf.float32)
         alpha = [tf.constant(1., tf.float32), tf.constant(0., tf.float32)]+[tf.constant(meta_args.alpha, tf.float32)]
-        args.update({"alpha": alpha[0]})
+        args["alpha"] = alpha[0]
 
     elif meta_args.update_rule == 'gradnorm':
         update_rule = gradnorm
@@ -170,10 +168,10 @@ def train(meta_args):
             b_losses  = gpu_to_numpy(b_losses)
 
             if isinstance(args, dict):
-                e_args = gpu_to_numpy(args.values())
+                e_args = {k: v for k, v in zip(args.keys(), gpu_to_numpy(args.values()))}
             else:
-                e_args = gpu_to_numpy(args.variables())
-            args_summary.append(e_args)
+                e_args = {'args': gpu_to_numpy(args.variables())}
+            args_summary.append(list(e_args.values()))
         
             # reduce lr or stop early if model doesn't improve after warmup phase
             if loss < best_loss:
@@ -205,7 +203,7 @@ def train(meta_args):
                     "val_loss {:<.3e}".format(val_loss),
                     "F {0:<.2e}".format(f_loss), 
                     "B", b_losses,
-                    "ARGS" if not isinstance(args, dict) else list(zip(args_keys, e_args)),
+                    "ARGS" if not isinstance(args, dict) else list(e_args.items()),
                     strftime('%H:%M:%S', gmtime(time()-start))
                 )
             

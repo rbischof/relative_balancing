@@ -16,6 +16,8 @@ class Burgers():
         self.x = data['x']
         self.t = data['t']
         self.u = tf.cast(np.rot90(data['usol'], k=1)[::-1], dtype=tf.float32)
+        self.data_min = (-1, 0)
+        self.data_max = (1, 1)
 
     def training_batch(self, batch_size:int=1024):
         if not self.inverse:
@@ -47,7 +49,7 @@ class Burgers():
         if self.inverse:
             x, t, u = self.validation_batch()
         # predictions and derivatives
-        u_pred = model[0](tf.concat([x, t], axis=-1), training=training)
+        u_pred = model[0]([x, t], training=training)
         du_dx, du_dt = tf.gradients(u_pred, [x, t])
         du_dxx = tf.gradients(du_dx, x)[0]
 
@@ -76,7 +78,7 @@ class Burgers():
     
     @tf.function
     def validation_loss(self, model:tf.keras.Model, x, t, u):
-        u_pred = model[0](tf.concat([x, t], axis=-1), training=False)
+        u_pred = model[0]([x, t], training=False)
         if not self.inverse:
             return tf.reduce_mean((u - u_pred)**2)
         else:
@@ -84,7 +86,7 @@ class Burgers():
 
     def visualise(self, model:tf.keras.Model, path:str=None):
         x, t, u = self.validation_batch()
-        u_pred = model[0].predict(tf.concat([x, t], axis=-1))
+        u_pred = model[0].predict([x, t])
 
         show_image(np.rot90(u_pred.reshape(100, 64), k=1), os.path.join(path, 'u_predicted'), extent=[-1, 1, 0, 1], x_label='t', y_label='x')
         show_image(np.rot90(u.numpy().reshape(100, 64), k=1), os.path.join(path, 'u_real'), extent=[-1, 1, 0, 1], x_label='t', y_label='x')
